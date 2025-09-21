@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendance System Debugger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-xl bg-white rounded-xl shadow-lg p-6 sm:p-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-4 text-center">
+        Attendance Debugger
+      </h1>
+      <p class="text-gray-500 mb-6 text-center">
+        Simulate your backend logic to pinpoint the issue.
+      </p>
+
+      <!-- Employee ID Input -->
+      <div class="mb-4">
+        <label for="employeeId" class="block text-gray-700 font-semibold mb-2"
+          >Enter Employee ID</label
+        >
+        <input
+          type="text"
+          id="employeeId"
+          class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          placeholder="e.g., employee-001"
+        />
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 mb-6">
+        <button
+          id="checkInBtn"
+          class="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        >
+          Check In
+        </button>
+        <button
+          id="checkOutBtn"
+          class="flex-1 px-6 py-3 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+        >
+          Check Out
+        </button>
+      </div>
+
+      <!-- Log Area -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Activity Log</h2>
+        <div
+          id="log"
+          class="bg-gray-100 p-4 rounded-lg h-48 overflow-y-auto text-sm text-gray-800 border border-gray-200"
+        >
+          <p class="text-gray-400">Your results will appear here...</p>
+        </div>
+      </div>
+
+      <p class="mt-6 text-xs text-gray-500 text-center">
+        Note: This is a frontend simulation. No actual server requests are made.
+      </p>
+    </div>
+
+    <script>
+      // --- Mock Backend Logic (based on your code) ---
+      // A simple in-memory "database" to store attendance records
+      const mockDatabase = [];
+
+      // Log function to display messages in the UI
+      function logMessage(message, type = "info") {
+        const logElement = document.getElementById("log");
+        const colorClass =
+          type === "success"
+            ? "text-green-600"
+            : type === "error"
+            ? "text-red-600"
+            : "text-gray-800";
+        const messageElement = document.createElement("p");
+        messageElement.classList.add(colorClass, "mb-1");
+        messageElement.textContent = message;
+        logElement.prepend(messageElement);
+      }
+
+      // Simulates the check-in controller
+      async function mockCheckInController(employeeId) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = today.getTime();
+
+        // Check if record exists for this employee and today's date
+        const existing = mockDatabase.find((rec) => {
+          const recDate = new Date(rec.date).getTime();
+          return rec.employee === employeeId && recDate === todayTimestamp;
+        });
+
+        if (existing) {
+          return { status: 400, message: "Already checked in today." };
+        }
+
+        // Create new record
+        const newRecord = {
+          employee: employeeId,
+          date: today.toISOString(),
+          checkIn: new Date().toISOString(),
+          checkOut: null,
+        };
+        mockDatabase.push(newRecord);
+        return { status: 201, message: "Check-in successful" };
+      }
+
+      // Simulates the check-out controller
+      async function mockCheckOutController(employeeId) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = today.getTime();
+
+        // Find today's record
+        const attendance = mockDatabase.find((rec) => {
+          const recDate = new Date(rec.date).getTime();
+          return rec.employee === employeeId && recDate === todayTimestamp;
+        });
+
+        if (!attendance) {
+          return {
+            status: 404,
+            message: "No check-in record found for today.",
+          };
+        }
+        if (attendance.checkOut) {
+          return { status: 400, message: "Already checked out today." };
+        }
+
+        // Update the record with check-out time
+        attendance.checkOut = new Date().toISOString();
+        return { status: 200, message: "Check-out successful" };
+      }
+
+      // --- Event Listeners ---
+      document
+        .getElementById("checkInBtn")
+        .addEventListener("click", async () => {
+          const employeeId = document.getElementById("employeeId").value.trim();
+          if (!employeeId) {
+            logMessage("Please enter an Employee ID.", "error");
+            return;
+          }
+
+          logMessage(`Attempting check-in for: ${employeeId}...`);
+          const response = await mockCheckInController(employeeId);
+          if (response.status === 201) {
+            logMessage(`[${employeeId}] Check-in successful!`, "success");
+          } else {
+            logMessage(`[${employeeId}] Error: ${response.message}`, "error");
+          }
+        });
+
+      document
+        .getElementById("checkOutBtn")
+        .addEventListener("click", async () => {
+          const employeeId = document.getElementById("employeeId").value.trim();
+          if (!employeeId) {
+            logMessage("Please enter an Employee ID.", "error");
+            return;
+          }
+
+          logMessage(`Attempting check-out for: ${employeeId}...`);
+          const response = await mockCheckOutController(employeeId);
+          if (response.status === 200) {
+            logMessage(`[${employeeId}] Check-out successful!`, "success");
+          } else {
+            logMessage(`[${employeeId}] Error: ${response.message}`, "error");
+          }
+        });
+    </script>
+  </body>
+</html>
