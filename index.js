@@ -6,6 +6,8 @@ import PageNotFound from "./src/middleware/pageNotFound.js";
 import cors from "cors";
 import employeeRouter from "./src/route/employeeRouter.js";
 import attendanceRouter from "./src/route/attendanceRouter.js";
+import payrollRouter from "./src/route/payrollRouter.js";
+import rosterRouter from "./src/route/rosterRouter.js";
 let app = express();
 
 app.use(
@@ -24,6 +26,8 @@ app.use(json());
 
 app.use("/employee", employeeRouter);
 app.use("/attendance", attendanceRouter);
+app.use("/roster", rosterRouter);
+app.use("/payroll", payrollRouter);
 
 app.use(errorMiddleware);
 

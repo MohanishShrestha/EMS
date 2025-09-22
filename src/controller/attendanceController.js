@@ -5,7 +5,6 @@ import Attendance from "../schema/AttendanceSchema.js";
 
 export const checkInController = expressAsyncHandler(async (req, res, next) => {
   const employeeId = req.employee?.id;
-  console.log(employeeId)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

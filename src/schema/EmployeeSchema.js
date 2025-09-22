@@ -8,16 +8,18 @@ const employeeSchema = Schema(
       unique: true,
       required: [true, "email is required"],
     },
-    password: { type: String, required: [true, "password is required"] }, 
+    password: { type: String, required: [true, "password is required"] },
     role: { type: String, enum: ["employee", "admin"], default: "employee" },
+    position: { type: String },
+    department: { type: String },
   },
   {
     timeStamps: true,
     toJSON: {
       transform: (doc, ret) => {
-        ret.id = ret._id; 
-        delete ret._id; 
-        delete ret.__v; 
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
       },
     },
   }
