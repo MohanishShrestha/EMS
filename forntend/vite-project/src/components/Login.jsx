@@ -19,33 +19,33 @@ import Group from "@mui/icons-material/Group";
 import Settings from "@mui/icons-material/Settings";
 
 // A mock API call function to simulate a network request.
-const mockLoginApi = (username, password, role) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (
-        username === "admin" &&
-        password === "password123" &&
-        role === "admin"
-      ) {
-        resolve({
-          token: "mock-admin-token",
-          user: { role: "admin", name: "Admin User", username: "admin" },
-        });
-      } else if (
-        username === "user" &&
-        password === "password123" &&
-        role === "employee"
-      ) {
-        resolve({
-          token: "mock-user-token",
-          user: { role: "employee", name: "Regular User", username: "user" },
-        });
-      } else {
-        reject(new Error("Invalid credentials or role selected."));
-      }
-    }, 1500);
-  });
-};
+// const mockLoginApi = (username, password, role) => {
+//   return new Promise((resolve, reject) => {
+//     setTimeout(() => {
+//       if (
+//         username === "admin" &&
+//         password === "password123" &&
+//         role === "admin"
+//       ) {
+//         resolve({
+//           token: "mock-admin-token",
+//           user: { role: "admin", name: "Admin User", username: "admin" },
+//         });
+//       } else if (
+//         username === "user" &&
+//         password === "password123" &&
+//         role === "employee"
+//       ) {
+//         resolve({
+//           token: "mock-user-token",
+//           user: { role: "employee", name: "Regular User", username: "user" },
+//         });
+//       } else {
+//         reject(new Error("Invalid credentials or role selected."));
+//       }
+//     }, 1500);
+//   });
+// };
 
 const Login = () => {
   const navigate = useNavigate();
