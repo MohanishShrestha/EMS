@@ -25,9 +25,9 @@ const DashboardWidgets = ({
       <Grid item xs={12} md={6}>
         <Paper
           sx={{
-            ml: 2,
+            ml: -3,
             pt: 6, // padding-top
-            pr: 30, // padding-right
+            pr: 27, // padding-right
             pb: 6, // padding-bottom
             pl: 9, // padding-left
             position: "relative",
@@ -74,7 +74,7 @@ const DashboardWidgets = ({
         <Paper
           sx={{
             pt: 6, // padding-top
-            pr: 28, // padding-right
+            pr: 27, // padding-right
             pb: 6, // padding-bottom
             pl: 9, // padding-left
             position: "relative",

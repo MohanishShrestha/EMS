@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { url } from "../constant";
 import {
   Box,
   Paper,
@@ -11,139 +13,25 @@ import {
   TableRow,
   Pagination,
   Button,
-  Grid,
   TextField,
   InputAdornment,
-  Toolbar,
   Chip,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  CheckCircleOutline as CheckInIcon,
-  ExitToApp as ExitToAppIcon,
   Search as SearchIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 
-const mockAttendance = [
-  {
-    id: 1,
-    employeeName: "John Doe",
-    checkIn: "08:00 AM",
-    checkOut: "05:00 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 2,
-    employeeName: "Jane Smith",
-    checkIn: "08:30 AM",
-    checkOut: "05:30 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 3,
-    employeeName: "Michael Johnson",
-    checkIn: "09:00 AM",
-    checkOut: "06:00 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 4,
-    employeeName: "Emily Davis",
-    checkIn: "08:15 AM",
-    checkOut: "05:15 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 5,
-    employeeName: "David Wilson",
-    checkIn: "08:45 AM",
-    checkOut: "05:45 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 6,
-    employeeName: "Sarah Brown",
-    checkIn: "09:15 AM",
-    checkOut: "06:15 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 7,
-    employeeName: "Chris Evans",
-    checkIn: "08:50 AM",
-    checkOut: "05:50 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 8,
-    employeeName: "Olivia White",
-    checkIn: "09:30 AM",
-    checkOut: "06:30 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 9,
-    employeeName: "Daniel Lee",
-    checkIn: "08:25 AM",
-    checkOut: "05:25 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 10,
-    employeeName: "Sophia Martinez",
-    checkIn: "09:10 AM",
-    checkOut: "06:10 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 11,
-    employeeName: "William Taylor",
-    checkIn: "08:20 AM",
-    checkOut: "05:20 PM",
-    date: "2023-10-27",
-    status: "Present",
-  },
-  {
-    id: 12,
-    employeeName: "Chloe Rodriguez",
-    checkIn: "08:40 AM",
-    checkOut: "05:40 PM",
-    date: "2023-10-27",
-    status: "Absent",
-  },
-  {
-    id: 13,
-    employeeName: "Chloe Rodriguez",
-    checkIn: "08:40 AM",
-    checkOut: "05:40 PM",
-    date: "2023-10-26",
-    status: "Present",
-  },
-  {
-    id: 14,
-    employeeName: "Chloe Rodriguez",
-    checkIn: "09:00 AM",
-    checkOut: null,
-    date: "2023-10-25",
-    status: "Present",
-  },
-];
-
 const AttendancePage = () => {
   const [page, setPage] = useState(1);
-  const [attendanceRecords, setAttendanceRecords] = useState(mockAttendance);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEmployeeForAttendance, setSelectedEmployeeForAttendance] =
     useState(null);
@@ -151,28 +39,96 @@ const AttendancePage = () => {
   const [endDate, setEndDate] = useState("");
   const recordsPerPage = 10;
 
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [employees, setEmployees] = useState([]);
+
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    checkIn: "",
+    checkOut: "",
+    date: "",
+    status: "",
+  });
+
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const handlePageChange = (event, value) => {
     setPage(value);
   };
 
-  const handleDelete = (id) => {
-    setAttendanceRecords(
-      attendanceRecords.filter((record) => record.id !== id)
+  const handleDeleteAttendance = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this attendance record?"
     );
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${url}/attendance/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const updatedRecords = attendanceRecords.filter(
+        (record) => record.id !== id
+      );
+      setAttendanceRecords(updatedRecords);
+      setSelectedEmployeeForAttendance(null);
+      setSuccessOpen(true);
+    } catch (error) {
+      console.error(
+        "Error deleting attendance record:",
+        error.response?.data || error.message
+      );
+      setErrorOpen(true);
+    }
   };
 
-  const handleEdit = (id) => {
-    console.log("Edit button clicked for record:", id);
+  const handleEdit = (record) => {
+    setEditingRecord(record);
+    setEditFormData({
+      checkIn: record.checkIn || "",
+      checkOut: record.checkOut || "",
+      date: record.date?.split("T")[0] || "",
+      status: record.status || "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(`${url}/attendance/${editingRecord.id}`, editFormData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const updatedRecords = attendanceRecords.map((record) =>
+        record.id === editingRecord.id ? { ...record, ...editFormData } : record
+      );
+      setAttendanceRecords(updatedRecords);
+      setEditingRecord(null);
+      setSuccessOpen(true);
+    } catch (error) {
+      console.error(
+        "Error updating attendance:",
+        error.response?.data || error.message
+      );
+      setErrorOpen(true);
+    }
   };
 
   const handleViewAttendance = (employeeName) => {
     setSelectedEmployeeForAttendance(employeeName);
-    setPage(1); // Reset page for the new view
+    setPage(1);
   };
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-    setPage(1); // Reset to the first page on search
+    setPage(1);
   };
 
   const getStatusColor = (status) => {
@@ -188,22 +144,69 @@ const AttendancePage = () => {
     }
   };
 
-  if (selectedEmployeeForAttendance) {
-    let employeeRecords = mockAttendance.filter(
-      (record) => record.employeeName === selectedEmployeeForAttendance
-    );
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString("en-GB"); // dd/mm/yyyy
+  };
 
-    // Apply date range filter if both dates are selected
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [attendanceRes, employeeRes] = await Promise.all([
+          axios.get(`${url}/attendance`),
+          axios.get(`${url}/employee`),
+        ]);
+
+        const attendanceRaw = attendanceRes.data.result;
+        const employeeList = employeeRes.data.result;
+
+        const mergedAttendance = attendanceRaw.map((record) => {
+          const employeeId = record.user || record.employee;
+          const employee = employeeList.find((emp) => emp.id === employeeId);
+
+          return {
+            ...record,
+            employeeName: employee?.name || "Unknown",
+            status: record.checkIn ? "Present" : record.status || "Absent",
+          };
+        });
+
+        setAttendanceRecords(mergedAttendance);
+        setEmployees(employeeList);
+      } catch (error) {
+        console.error(
+          "Error fetching data:",
+          error.response?.data || error.message
+        );
+        setErrorOpen(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Employee specific records (moved outside for global access)
+  const employeeRecords = selectedEmployeeForAttendance
+    ? attendanceRecords.filter(
+        (record) => record.employeeName === selectedEmployeeForAttendance
+      )
+    : [];
+
+  if (selectedEmployeeForAttendance) {
+    let filtered = [...employeeRecords];
     if (startDate && endDate) {
-      employeeRecords = employeeRecords.filter((record) => {
+      filtered = filtered.filter((record) => {
         const recordDate = new Date(record.date);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        return recordDate >= start && recordDate <= end;
+        return (
+          recordDate >= new Date(startDate) && recordDate <= new Date(endDate)
+        );
       });
     }
 
-    const paginatedRecords = employeeRecords.slice(
+    const paginated = filtered.slice(
       (page - 1) * recordsPerPage,
       page * recordsPerPage
     );
@@ -213,59 +216,43 @@ const AttendancePage = () => {
         <Typography variant="h4" gutterBottom>
           Attendance for {selectedEmployeeForAttendance}
         </Typography>
-        <Box
-          sx={{
-            mb: 4,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <Box sx={{ mb: 4, display: "flex", gap: 2, alignItems: "center" }}>
           <Button
             variant="outlined"
             onClick={() => setSelectedEmployeeForAttendance(null)}
           >
             Back to All Records
           </Button>
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <TextField
-              label="Start Date"
-              variant="outlined"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              sx={{ width: "200px" }}
-            />
-            <TextField
-              label="End Date"
-              variant="outlined"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              sx={{ width: "200px" }}
-            />
-          </Box>
+          <TextField
+            label="Start Date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="End Date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
         </Box>
+
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }}>
+          <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Check-In</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Check-Out</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Check-In</TableCell>
+                <TableCell>Check-Out</TableCell>
+                <TableCell>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedRecords.map((record) => (
+              {paginated.map((record) => (
                 <TableRow key={record.id}>
-                  <TableCell>{record.date}</TableCell>
+                  <TableCell>{formatDate(record.date)}</TableCell>
                   <TableCell>{record.checkIn}</TableCell>
                   <TableCell>{record.checkOut}</TableCell>
                   <TableCell>
@@ -279,48 +266,30 @@ const AttendancePage = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
           <Pagination
-            count={Math.ceil(employeeRecords.length / recordsPerPage)}
+            count={Math.ceil(filtered.length / recordsPerPage)}
             page={page}
             onChange={handlePageChange}
-            color="primary"
           />
         </Box>
       </Box>
     );
   }
 
-  // Filter records based on search term
-  const filteredRecords = attendanceRecords.filter(
-    (record) =>
-      (record.employeeName &&
-        record.employeeName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (record.date &&
-        record.date.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (record.status &&
-        record.status.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  // Sort attendance records by check-in time in descending order
-  const sortedRecords = [...filteredRecords].sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
-    const timeA = new Date(`2000/01/01 ${a.checkIn}`);
-    const timeB = new Date(`2000/01/01 ${b.checkIn}`);
-    if (dateA > dateB) return -1;
-    if (dateA < dateB) return 1;
-    return timeB - timeA;
+  // Search filter
+  const filteredRecords = attendanceRecords.filter((record) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      record.employeeName?.toLowerCase().includes(term) ||
+      record.date?.toString().toLowerCase().includes(term) ||
+      record.status?.toLowerCase().includes(term)
+    );
   });
 
-  const latestCheckIn = sortedRecords[0];
-  const latestCheckOut = [...attendanceRecords].sort((a, b) => {
-    const timeA = new Date(`2000/01/01 ${a.checkOut}`);
-    const timeB = new Date(`2000/01/01 ${b.checkOut}`);
-    return timeB - timeA;
-  })[0];
-
-  const paginatedRecords = sortedRecords.slice(
+  // Pagination
+  const paginatedRecords = filteredRecords.slice(
     (page - 1) * recordsPerPage,
     page * recordsPerPage
   );
@@ -331,38 +300,9 @@ const AttendancePage = () => {
         Employee Attendance
       </Typography>
 
-      {/* <Grid container spacing={4} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ color: '#2ecc71', mr: 2 }}>
-              <CheckInIcon sx={{ fontSize: 40 }} />
-            </Box>
-            <Box>
-              <Typography variant="h6">Latest Check-In</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                {latestCheckIn.employeeName} at {latestCheckIn.checkIn}
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ color: '#e74c3c', mr: 2 }}>
-              <ExitToAppIcon sx={{ fontSize: 40 }} />
-            </Box>
-            <Box>
-              <Typography variant="h6">Latest Check-Out</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                {latestCheckOut.employeeName} at {latestCheckOut.checkOut}
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid> */}
-
-      <Box sx={{ mb: 4, display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
         <TextField
-          label="Search Attendance"
+          label="Search Employee Attendance"
           variant="outlined"
           value={searchTerm}
           onChange={handleSearchChange}
@@ -373,20 +313,20 @@ const AttendancePage = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ width: "400px" }}
+          sx={{ width: 400 }}
         />
       </Box>
 
       <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
+        <Table>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: "bold" }}>Employee Name</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Check-In</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Check-Out</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
+              <TableCell>Employee</TableCell>
+              <TableCell>Check-In</TableCell>
+              <TableCell>Check-Out</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -395,7 +335,7 @@ const AttendancePage = () => {
                 <TableCell>{record.employeeName}</TableCell>
                 <TableCell>{record.checkIn}</TableCell>
                 <TableCell>{record.checkOut}</TableCell>
-                <TableCell>{record.date}</TableCell>
+                <TableCell>{formatDate(record.date)}</TableCell>
                 <TableCell>
                   <Chip
                     label={record.status}
@@ -404,23 +344,22 @@ const AttendancePage = () => {
                 </TableCell>
                 <TableCell>
                   <Button
-                    variant="outlined"
+                    size="small"
                     startIcon={<EditIcon />}
-                    onClick={() => handleEdit(record.id)}
-                    sx={{ mr: 1 }}
+                    onClick={() => handleEdit(record)}
                   >
                     Edit
                   </Button>
                   <Button
-                    variant="outlined"
+                    size="small"
                     color="error"
                     startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(record.id)}
-                    sx={{ mr: 1 }}
+                    onClick={() => handleDeleteAttendance(record.id)}
                   >
                     Delete
                   </Button>
                   <Button
+                    size="small"
                     variant="contained"
                     startIcon={<VisibilityIcon />}
                     onClick={() => handleViewAttendance(record.employeeName)}
@@ -433,14 +372,77 @@ const AttendancePage = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
         <Pagination
           count={Math.ceil(filteredRecords.length / recordsPerPage)}
           page={page}
           onChange={handlePageChange}
-          color="primary"
         />
       </Box>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingRecord} onClose={() => setEditingRecord(null)}>
+        <DialogTitle>Edit Attendance</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <TextField
+            label="Check-In"
+            value={editFormData.checkIn}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, checkIn: e.target.value })
+            }
+          />
+          <TextField
+            label="Check-Out"
+            value={editFormData.checkOut}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, checkOut: e.target.value })
+            }
+          />
+          <TextField
+            label="Date"
+            type="date"
+            value={editFormData.date}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, date: e.target.value })
+            }
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Status"
+            value={editFormData.status}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, status: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingRecord(null)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveEdit}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbars */}
+      <Snackbar
+        open={successOpen}
+        autoHideDuration={3000}
+        onClose={() => setSuccessOpen(false)}
+      >
+        <Alert severity="success" sx={{ width: "100%" }}>
+          Action completed successfully!
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={errorOpen}
+        autoHideDuration={3000}
+        onClose={() => setErrorOpen(false)}
+      >
+        <Alert severity="error" sx={{ width: "100%" }}>
+          Something went wrong!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

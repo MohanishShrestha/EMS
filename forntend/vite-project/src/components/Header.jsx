@@ -1,28 +1,57 @@
-import React from 'react';
-import { AppBar, Toolbar, Box, InputBase, IconButton, Avatar, Typography, Badge } from '@mui/material';
-import { Search as SearchIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
+import React from "react";
+import {
+  AppBar,
+  Toolbar,
+  Box,
+  InputBase,
+  IconButton,
+  Avatar,
+  Typography,
+  Badge,
+} from "@mui/material";
+import {
+  Search as SearchIcon,
+  Notifications as NotificationsIcon,
+} from "@mui/icons-material";
 
 const Header = () => {
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("user"));
+  } catch (error) {
+    console.warn("Invalid user data in localStorage");
+  }
+
+  const displayName = user?.name || "Admin User";
+  const displayRole = user?.role || "System Administrator";
+
+  // Generate initials from name (e.g., "Bipan User" → "BU")
+  const initials = displayName
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+
   return (
-    <AppBar position="static" color="transparent" elevation={0} sx={{ backgroundColor: '#fff' }}>
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #ccc', borderRadius: '20px', padding: '5px 15px', width: '400px' }}>
-          <InputBase placeholder="Search employees, reports..." sx={{ flexGrow: 1 }} />
-          <IconButton sx={{ color: '#888' }}>
-            <SearchIcon />
-          </IconButton>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Badge badgeContent={3} color="error" sx={{ mr: 2 }}>
-            <NotificationsIcon sx={{ color: '#888' }} />
-          </Badge>
-          <Avatar sx={{ bgcolor: '#3498db' }}>AD</Avatar>
+    <AppBar
+      position="static"
+      color="transparent"
+      elevation={0}
+      sx={{ backgroundColor: "#fff" }}
+    >
+      <Toolbar sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Avatar sx={{ bgcolor: "#3498db" }}>{initials}</Avatar>
           <Box sx={{ ml: 1 }}>
-            <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>
-              Admin User
+            <Typography
+              variant="subtitle1"
+              component="div"
+              sx={{ fontWeight: "bold" }}
+            >
+              {displayName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              System Administrator
+              {displayRole}
             </Typography>
           </Box>
         </Box>

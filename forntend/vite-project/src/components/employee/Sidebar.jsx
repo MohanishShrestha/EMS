@@ -17,20 +17,29 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+
   const menuItems = [
     {
       text: "Dashboard",
       icon: <DashboardIcon color="primary" />,
-      active: true,
+      path: "/admin/dashboard",
     },
-    { text: "Roster", icon: <GroupIcon /> },
-    { text: "Attendance", icon: <EventNoteIcon /> },
-    { text: "Payroll", icon: <AttachMoneyIcon /> },
+    { text: "Roster", icon: <GroupIcon />, path: "/admin/roster" },
+    { text: "Attendance", icon: <EventNoteIcon />, path: "/admin/attendance" },
+    { text: "Payroll", icon: <AttachMoneyIcon />, path: "/admin/payroll" },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   return (
     <Drawer
@@ -47,6 +56,7 @@ const Sidebar = () => {
       variant="permanent"
       anchor="left"
     >
+      {/* Sidebar Header */}
       <Typography
         variant="h6"
         sx={{
@@ -56,7 +66,7 @@ const Sidebar = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          gap: 1, // space between icon and text
+          gap: 1,
         }}
       >
         <PeopleIcon />
@@ -64,17 +74,23 @@ const Sidebar = () => {
       </Typography>
 
       <Divider sx={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+
+      {/* Menu Items */}
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
+              component={NavLink}
+              to={item.path}
               sx={{
                 color: "#fff",
                 "&:hover": {
                   backgroundColor: "#34495e",
                 },
+                "&.active": {
+                  backgroundColor: "#1abc9c",
+                },
               }}
-              selected={item.active}
             >
               <ListItemIcon sx={{ color: "#fff" }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
@@ -82,9 +98,12 @@ const Sidebar = () => {
           </ListItem>
         ))}
       </List>
+
+      {/* Logout Button */}
       <Box sx={{ mt: "auto", mb: 2 }}>
         <ListItem disablePadding>
           <ListItemButton
+            onClick={handleLogout}
             sx={{ color: "#fff", "&:hover": { backgroundColor: "#c0392b" } }}
           >
             <ListItemIcon sx={{ color: "#fff" }}>

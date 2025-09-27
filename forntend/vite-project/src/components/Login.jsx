@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useContext } from "react";
 import {
   Container,
   TextField,
@@ -12,56 +12,30 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import Lock from "@mui/icons-material/Lock";
 import Group from "@mui/icons-material/Group";
 import Settings from "@mui/icons-material/Settings";
-
-// A mock API call function to simulate a network request.
-// const mockLoginApi = (username, password, role) => {
-//   return new Promise((resolve, reject) => {
-//     setTimeout(() => {
-//       if (
-//         username === "admin" &&
-//         password === "password123" &&
-//         role === "admin"
-//       ) {
-//         resolve({
-//           token: "mock-admin-token",
-//           user: { role: "admin", name: "Admin User", username: "admin" },
-//         });
-//       } else if (
-//         username === "user" &&
-//         password === "password123" &&
-//         role === "employee"
-//       ) {
-//         resolve({
-//           token: "mock-user-token",
-//           user: { role: "employee", name: "Regular User", username: "user" },
-//         });
-//       } else {
-//         reject(new Error("Invalid credentials or role selected."));
-//       }
-//     }, 1500);
-//   });
-// };
+import EmailIcon from "@mui/icons-material/Email";
+import axios from "axios";
+import { url } from "../constant";
+import { GlobalVariableContext } from "../App";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", password: "", role: "" });
+  const location = useLocation();
+  const global = useContext(GlobalVariableContext);
+
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    role: "",
+    email: "",
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) {
-      setUser(storedUser);
-      // Assuming your roles are 'admin' and 'employee' based on the image's "Role" dropdown
-      navigate(storedUser.role === "admin" ? "/admin" : "/");
-    }
-  }, [navigate]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -69,23 +43,41 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
+    const { username, password, role, email } = form;
+
+    // Basic validation
+    if (!username || !password || !role || !email) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const response = await mockLoginApi(
-        form.username,
-        form.password,
-        form.role
-      );
+      const response = await axios.post(`${url}/employee/login`, {
+        username,
+        password,
+        email,
+        role,
+      });
 
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
-      setUser(response.user);
+      const { token, data: userData } = response.data;
 
-      navigate(response.user.role === "admin" ? "/admin" : "/");
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      global?.setToken?.(token);
+
+      const redirectPath =
+        location?.state?.from?.pathname ||
+        (userData.role === "admin"
+          ? "/project/admin/dashboard"
+          : "/project/employee/dashboard");
+
+      navigate(redirectPath, { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -116,7 +108,7 @@ const Login = () => {
           overflow: "hidden",
         }}
       >
-        {/* Header Section */}
+        {/* Header */}
         <Box
           sx={{
             background: "rgba(16, 46, 71, 1)",
@@ -143,15 +135,12 @@ const Login = () => {
           </Typography>
         </Box>
 
-        {/* Form Section */}
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            padding: "32px 24px",
-          }}
-        >
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ padding: "32px 24px" }}>
           <TextField
             fullWidth
+            required
+            autoFocus
             margin="normal"
             label="Username"
             name="username"
@@ -166,8 +155,29 @@ const Login = () => {
               ),
             }}
           />
+
           <TextField
             fullWidth
+            required
+            margin="normal"
+            label="Email"
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Enter your email"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <EmailIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <TextField
+            fullWidth
+            required
             margin="normal"
             label="Password"
             name="password"
@@ -184,7 +194,7 @@ const Login = () => {
             }}
           />
 
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth required margin="normal">
             <InputLabel id="role-select-label">Role</InputLabel>
             <Select
               labelId="role-select-label"
@@ -193,11 +203,6 @@ const Login = () => {
               label="Role"
               name="role"
               onChange={handleChange}
-              startAdornment={
-                <InputAdornment position="start">
-                  <Group />
-                </InputAdornment>
-              }
             >
               <MenuItem value="">
                 <em>Select your role</em>
@@ -212,6 +217,7 @@ const Login = () => {
               {error}
             </Alert>
           )}
+
           <Button
             type="submit"
             fullWidth
@@ -224,7 +230,7 @@ const Login = () => {
           </Button>
         </form>
 
-        {/* Footer Section */}
+        {/* Footer */}
         <Box
           sx={{
             padding: "16px 24px",

@@ -1,13 +1,8 @@
-import React from "react";
-import { Box, Grid, CssBaseline } from "@mui/material";
-import Sidebar from "./Sidebar";
-import Header from "./Header";
+import { Box, CssBaseline, Grid } from "@mui/material";
 import DashboardWidgets from "./DashboardWidgets";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
 import TodayEvent from "./TodayEvents";
-import Employess from "./Employess";
-import Attendance from "./Attendance";
-import Payroll from "./Payroll";
-import RosterPage from "./RosterPage";
 
 const mockData = {
   totalEmployees: 142,
@@ -23,26 +18,23 @@ const mockData = {
 
 const Dashboard = () => {
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box>
       <CssBaseline />
-      <Sidebar />
+
+      {/* Main Content */}
       <Box
         component="main"
-        sx={{ flexGrow: 1, p: 1.5, backgroundColor: "#f4f7f9" }}
+        sx={{ flexGrow: 1, p: 3, backgroundColor: "#f4f7f9" }}
       >
-        <Header />
-        <Grid container spacing={5} sx={{ mt: 5 }}>
+        {/* Dashboard Grid */}
+        <Grid container spacing={3}>
           <Grid item xs={12} md={6} lg={4}>
             <DashboardWidgets data={mockData} />
           </Grid>
-          <Grid item xs={12} md={4} lg={8}>
+          <Grid item xs={12} md={6} lg={8}>
             <TodayEvent event={mockData.todayEvent} />
           </Grid>
         </Grid>
-        {/* <Employess/> */}
-        {/* <Attendance /> */}
-        {/* <Payroll /> */}
-        {/* <RosterPage /> */}
       </Box>
     </Box>
   );

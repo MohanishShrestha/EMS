@@ -8,7 +8,7 @@ const TodayEvent = ({ event }) => {
         pt: 4, 
         pb: 4, 
         pl: 6, 
-        ml: 2,
+        ml: -3,
         mb: 3,
         pr:48,
       }}>

@@ -106,13 +106,38 @@ const mockRoster = [
     totalHours: 8,
     date: "2023-11-6",
   },
-  
 ];
 
 const RosterPage = () => {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const recordsPerPage = 10;
+  const [employees, setEmployees] = useState([]);
+  const [rosterData, setRosterData] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const [employeeRes, rosterRes] = await Promise.all([
+            axios.get(`${url}/employee`),
+            axios.get(`${url}/roster`),
+          ]);
+  
+          setEmployees(employeeRes.data.result);
+          console.log(employeeRes.data.result);
+          console.log(rosterRes.data.result);
+          setRosterData(rosterRes.data.result);
+        } catch (error) {
+          console.error(
+            "Error fetching data:",
+            error.response?.data || error.message
+          );
+        }
+      };
+  
+      fetchData();
+    }, []);
 
   const handlePageChange = (event, value) => {
     setPage(value);
