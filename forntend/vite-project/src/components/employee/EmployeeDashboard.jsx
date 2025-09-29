@@ -2,9 +2,9 @@ import React from "react";
 import { Box, Grid, CssBaseline } from "@mui/material";
 
 import DashboardWidgets from "./DashboardWidgets";
-import TodayEvent from "./TodayEvents";
-import Header from "./Header";
-import Sidebar from "./Sidebar";
+import TodayEventss from "./TodayEventss";
+import Header from "./HeaderEmployee";
+import Sidebar from "./SidebarEmployee";
 import RosterPage from "../RosterPage";
 import EmployeeRosterPage from "./EmpyloyeeRoster";
 import EmployeeAttendancePage from "./EmployeeAttendancePage";
@@ -23,25 +23,21 @@ const mockData = {
 
 const EmployeeDashboard = () => {
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box>
       <CssBaseline />
-      <Sidebar />
       <Box
         component="main"
         sx={{ flexGrow: 1, p: 1.5, backgroundColor: "#f4f7f9" }}
       >
-        <Header />
         <Grid container spacing={5} sx={{ mt: 5 }}>
           <Grid item xs={12} md={6} lg={4}>
             <DashboardWidgets data={mockData} />
           </Grid>
-          <Grid item xs={12} md={4} lg={8}>
-            <TodayEvent event={mockData.todayEvent} />
-          </Grid>
+          
+            <TodayEventss event={mockData.todayEvent} />
+          
         </Grid>
-        {/* <EmployeeRosterPage /> */}
-        {/* <EmployeeAttendancePage /> */}
-        {/* <MyPayrollPage /> */}
+        
       </Box>
     </Box>
   );

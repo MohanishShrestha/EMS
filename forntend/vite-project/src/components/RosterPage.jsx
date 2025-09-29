@@ -14,11 +14,12 @@ import {
   InputAdornment,
   Button,
 } from "@mui/material";
-import { ClassSharp, Search as SearchIcon } from "@mui/icons-material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import axios from "axios";
 import { url } from "../constant";
+import dayjs from "dayjs";
 
-const RosterPage = () => {
+const RosterPages = () => {
   const [employees, setEmployees] = useState([]);
   const [rosterData, setRosterData] = useState([]);
   const [page, setPage] = useState(1);
@@ -33,7 +34,6 @@ const RosterPage = () => {
           axios.get(`${url}/employee`),
           axios.get(`${url}/roster`),
         ]);
-
         setEmployees(employeeRes.data.result);
         setRosterData(rosterRes.data.result);
       } catch (error) {
@@ -43,7 +43,6 @@ const RosterPage = () => {
         );
       }
     };
-
     fetchData();
   }, []);
 
@@ -62,42 +61,29 @@ const RosterPage = () => {
   };
 
   const convertTo24Hour = (time12h) => {
-  if (!time12h || typeof time12h !== "string") return "00:00";
+    if (!time12h || typeof time12h !== "string") return "00:00";
+    const parts = time12h.trim().split(" ");
+    if (parts.length !== 2) return "00:00";
+    const [time, rawModifier] = parts;
+    const modifier = rawModifier.toUpperCase();
+    let [hours, minutes] = time.split(":");
+    hours = parseInt(hours, 10);
+    if (modifier === "PM" && hours !== 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return `${hours.toString().padStart(2, "0")}:${minutes}`;
+  };
 
-  const parts = time12h.trim().split(" ");
-  if (parts.length !== 2) return "00:00"; // fallback if AM/PM is missing
-
-  const [time, rawModifier] = parts;
-  const modifier = rawModifier.toUpperCase();
-
-  let [hours, minutes] = time.split(":");
-  if (!hours || !minutes) return "00:00";
-
-  hours = parseInt(hours, 10);
-  if (modifier === "PM" && hours !== 12) hours += 12;
-  if (modifier === "AM" && hours === 12) hours = 0;
-
-  return `${hours.toString().padStart(2, "0")}:${minutes}`;
-};
-
-
-  // ✅ Merge employee and roster data
   const mergedRoster = rosterData
     .map((roster) => {
       const employee = employees.find(
         (emp) => emp.id === roster.employee_id && emp.role !== "admin"
       );
-
-      if (!employee) return null; // Skip if no matching employee or is admin
-
+      if (!employee) return null;
       const shiftStartStr = convertTo24Hour(roster.start_time);
       const shiftEndStr = convertTo24Hour(roster.end_time);
-
       const shiftStart = new Date(`1970-01-01T${shiftStartStr}:00`);
       const shiftEnd = new Date(`1970-01-01T${shiftEndStr}:00`);
-
       const totalHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
-
       return {
         id: roster.id,
         name: employee.name,
@@ -105,10 +91,12 @@ const RosterPage = () => {
         position: employee.position || "N/A",
         shiftTime: `${roster.start_time} - ${roster.end_time}`,
         totalHours: totalHours.toFixed(2),
-        date: roster.shift_date,
+        // date: new Date(roster.shift_date).toISOString().split("T")[0],
+        date: dayjs(roster.shift_date).format("YYYY/MM/DD"),
       };
     })
-    .filter(Boolean); // ✅ Remove nulls
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const filteredRecords = mergedRoster.filter((record) =>
     Object.values(record).some(
@@ -132,6 +120,17 @@ const RosterPage = () => {
     page * recordsPerPage
   );
 
+  const handleDelete = async (rosterId) => {
+    if (!window.confirm("Are you sure you want to delete this roster?")) return;
+    try {
+      await axios.delete(`${url}/roster/${rosterId}`);
+      // Remove locally
+      setRosterData((prev) => prev.filter((r) => r.id !== rosterId));
+    } catch (error) {
+      console.error("Delete failed:", error.response?.data || error.message);
+    }
+  };
+
   return (
     <Box sx={{ p: 4 }}>
       {selectedEmployee ? (
@@ -150,15 +149,10 @@ const RosterPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>
-                    <strong>Date</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Shift Time</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Total Hours</strong>
-                  </TableCell>
+                  <TableCell><strong>Date</strong></TableCell>
+                  <TableCell><strong>Shift Time</strong></TableCell>
+                  <TableCell><strong>Total Hours</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -167,6 +161,15 @@ const RosterPage = () => {
                     <TableCell>{record.date}</TableCell>
                     <TableCell>{record.shiftTime}</TableCell>
                     <TableCell>{record.totalHours}</TableCell>
+                    <TableCell>
+                      <Button
+                        color="error"
+                        variant="outlined"
+                        onClick={() => handleDelete(record.id)}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -206,24 +209,13 @@ const RosterPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>
-                    <strong>Date</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Name</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Department</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Position</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Shift Time</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Total Hours</strong>
-                  </TableCell>
+                  <TableCell><strong>Date</strong></TableCell>
+                  <TableCell><strong>Name</strong></TableCell>
+                  <TableCell><strong>Department</strong></TableCell>
+                  <TableCell><strong>Position</strong></TableCell>
+                  <TableCell><strong>Shift Time</strong></TableCell>
+                  <TableCell><strong>Total Hours</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -239,6 +231,18 @@ const RosterPage = () => {
                     <TableCell>{record.position}</TableCell>
                     <TableCell>{record.shiftTime}</TableCell>
                     <TableCell>{record.totalHours}</TableCell>
+                    <TableCell>
+                      <Button
+                        color="error"
+                        variant="outlined"
+                        onClick={(e) => {
+                          e.stopPropagation(); // prevent row click
+                          handleDelete(record.id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -258,4 +262,4 @@ const RosterPage = () => {
   );
 };
 
-export default RosterPage;
+export default RosterPages;

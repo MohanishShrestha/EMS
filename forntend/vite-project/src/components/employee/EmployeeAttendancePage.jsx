@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -12,63 +12,115 @@ import {
   Button,
   Chip,
   Grid,
-  TextField
+  TextField,
+  Pagination,
 } from "@mui/material";
-import {
-  Login as CheckInIcon,
-  Logout as CheckOutIcon,
-  Search as SearchIcon
-} from "@mui/icons-material";
+import { Login as CheckInIcon, Logout as CheckOutIcon } from "@mui/icons-material";
+import axios from "axios";
+import dayjs from "dayjs";
+import { url } from "../../constant";
 
 const EmployeeAttendancePage = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [searchDate, setSearchDate] = useState("");
+  const [page, setPage] = useState(1);
+  const recordsPerPage = 10;
+
+  const token = localStorage.getItem("token");
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  const employeeId = user?.id;
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Checked In":
+      case "Present":
         return "success";
-      case "Checked Out":
+      case "Absent":
         return "error";
       default:
         return "default";
     }
   };
 
-  const handleCheckIn = () => {
-    const newRecord = {
-      id: attendanceRecords.length + 1,
-      date: new Date().toLocaleDateString(),
-      checkInTime: new Date().toLocaleTimeString(),
-      checkOutTime: "N/A",
-      status: "Checked In",
-    };
-    setAttendanceRecords([newRecord, ...attendanceRecords]);
-    setIsCheckedIn(true);
+  const fetchAttendance = async () => {
+    if (!employeeId || !token) return;
+
+    try {
+      const res = await axios.get(`${url}/attendance/${employeeId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const sorted = res.data.records?.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      ) || [];
+      console.log("sorted: ",sorted)
+
+      setAttendanceRecords(sorted);
+      setIsCheckedIn(sorted[0]?.status === "Present");
+    } catch (error) {
+      console.error("Failed to fetch attendance:", error.response?.data || error.message);
+    }
   };
 
-  const handleCheckOut = () => {
-    const updatedRecords = attendanceRecords.map((record, index) => {
-      if (index === 0) { // Update the latest record
-        return {
-          ...record,
-          checkOutTime: new Date().toLocaleTimeString(),
-          status: "Checked Out",
-        };
+  useEffect(() => {
+    fetchAttendance();
+  }, []);
+
+  const handleCheckIn = async () => {
+    try {
+      const res = await axios.post(`${url}/attendance/checkin`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log(res)
+      const newRecord = res.data.record || res.data.result;
+      if (newRecord) {
+        setAttendanceRecords([newRecord, ...attendanceRecords]);
+        setIsCheckedIn(true);
       }
-      return record;
-    });
-    setAttendanceRecords(updatedRecords);
-    setIsCheckedIn(false);
+    } catch (error) {
+      console.error("Check-in failed:", error.response?.data || error.message);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    try {
+      const res = await axios.post(`${url}/attendance/checkout`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updatedRecord = res.data.record || res.data.result;
+      if (updatedRecord) {
+        const updatedRecords = attendanceRecords.map((record) =>
+          record.id === updatedRecord.id ? updatedRecord : record
+        );
+        setAttendanceRecords(updatedRecords);
+        setIsCheckedIn(false);
+      }
+    } catch (error) {
+      console.error("Check-out failed:", error.response?.data || error.message);
+    }
   };
 
   const handleSearchChange = (event) => {
     setSearchDate(event.target.value);
+    setPage(1);
+  };
+
+  const handlePageChange = (event, value) => {
+    setPage(value);
   };
 
   const filteredRecords = attendanceRecords.filter((record) =>
-    searchDate ? record.date === new Date(searchDate).toLocaleDateString() : true
+    searchDate
+      ? dayjs(record.date).format("YYYY-MM-DD") === searchDate
+      : true
+  );
+
+  const paginatedRecords = filteredRecords.slice(
+    (page - 1) * recordsPerPage,
+    page * recordsPerPage
   );
 
   return (
@@ -76,6 +128,7 @@ const EmployeeAttendancePage = () => {
       <Typography variant="h4" gutterBottom>
         My Attendance
       </Typography>
+
       <Paper sx={{ p: 3, mb: 4 }}>
         <Grid container spacing={2} justifyContent="center">
           <Grid item>
@@ -84,7 +137,6 @@ const EmployeeAttendancePage = () => {
               color="primary"
               startIcon={<CheckInIcon />}
               onClick={handleCheckIn}
-              disabled={isCheckedIn}
             >
               Check In
             </Button>
@@ -95,26 +147,26 @@ const EmployeeAttendancePage = () => {
               color="secondary"
               startIcon={<CheckOutIcon />}
               onClick={handleCheckOut}
-              disabled={!isCheckedIn}
             >
               Check Out
             </Button>
           </Grid>
         </Grid>
       </Paper>
+
       <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
         Attendance History
       </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
         <TextField
           label="Search by Date"
           type="date"
-          InputLabelProps={{
-            shrink: true,
-          }}
+          InputLabelProps={{ shrink: true }}
           onChange={handleSearchChange}
         />
       </Box>
+
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead>
@@ -126,22 +178,39 @@ const EmployeeAttendancePage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRecords.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell>{record.date}</TableCell>
-                <TableCell>{record.checkInTime}</TableCell>
-                <TableCell>{record.checkOutTime}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={record.status}
-                    color={getStatusColor(record.status)}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
+            {paginatedRecords.map((record) => {
+              const formattedDate = dayjs(record.date).format("DD/MM/YYYY");
+              const formattedCheckIn = record.checkIn
+                ? dayjs(record.checkIn).format("HH:mm")
+                : "-";
+              const formattedCheckOut = record.checkOut
+                ? dayjs(record.checkOut).format("HH:mm")
+                : "-";
+              const status = record.status || (record.checkIn ? "Present" : "Absent");
+
+              return (
+                <TableRow key={record.id}>
+                  <TableCell>{formattedDate}</TableCell>
+                  <TableCell>{record.checkIn}</TableCell>
+                  <TableCell>{record.checkOut}</TableCell>
+                  <TableCell>
+                    <Chip label={status} color={getStatusColor(status)} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <Pagination
+          count={Math.ceil(filteredRecords.length / recordsPerPage)}
+          page={page}
+          onChange={handlePageChange}
+          color="primary"
+        />
+      </Box>
     </Box>
   );
 };

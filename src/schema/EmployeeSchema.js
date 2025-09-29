@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 
 const employeeSchema = Schema(
   {
-    name: { type: String, required: [true, "name is required"] },
+    name: { type: String, unique: true, required: [true, "name is required"] },
     email: {
       type: String,
       unique: true,

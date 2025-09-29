@@ -31,9 +31,9 @@ const Dashboard = () => {
           <Grid item xs={12} md={6} lg={4}>
             <DashboardWidgets data={mockData} />
           </Grid>
-          <Grid item xs={12} md={6} lg={8}>
-            <TodayEvent event={mockData.todayEvent} />
-          </Grid>
+          
+          <TodayEvent/>
+          
         </Grid>
       </Box>
     </Box>

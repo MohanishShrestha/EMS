@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Paper,
@@ -14,158 +14,108 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
-
-const mockRoster = [
-  {
-    id: 1,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-10-27",
-  },
-  {
-    id: 2,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-10-28",
-  },
-  {
-    id: 3,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-10-29",
-  },
-  {
-    id: 4,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-10-30",
-  },
-  {
-    id: 5,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-11-1",
-  },
-  {
-    id: 6,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-11-2",
-  },
-  {
-    id: 7,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-11-3",
-  },
-  {
-    id: 8,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-11-4",
-  },
-  {
-    id: 9,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-11-5",
-  },
-  {
-    id: 10,
-    employeeName: "John Doe",
-    shiftTime: "08:00 AM - 04:00 PM",
-    department: "Engineering",
-    position: "Software Engineer",
-    totalHours: 8,
-    date: "2023-11-6",
-  },
-];
+import axios from "axios";
+import { url } from "../../constant";
+import dayjs from "dayjs";
 
 const RosterPage = () => {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const recordsPerPage = 10;
-  const [employees, setEmployees] = useState([]);
   const [rosterData, setRosterData] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   useEffect(() => {
-      const fetchData = async () => {
-        try {
-          const [employeeRes, rosterRes] = await Promise.all([
-            axios.get(`${url}/employee`),
-            axios.get(`${url}/roster`),
-          ]);
-  
-          setEmployees(employeeRes.data.result);
-          console.log(employeeRes.data.result);
-          console.log(rosterRes.data.result);
-          setRosterData(rosterRes.data.result);
-        } catch (error) {
-          console.error(
-            "Error fetching data:",
-            error.response?.data || error.message
-          );
+    const fetchData = async () => {
+      try {
+        // 👇 parse user object from localStorage
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) {
+          console.warn("No user found in localStorage");
+          return;
         }
-      };
-  
-      fetchData();
-    }, []);
 
-  const handlePageChange = (event, value) => {
+        const user = JSON.parse(storedUser); // { id, name, email, ... }
+        const employeeId = user.id;
+
+        // Fetch roster from API
+        const res = await axios.get(`${url}/roster`);
+        
+        // Filter only this employee’s roster
+        const filtered = res.data.result.filter(
+          (record) => record.employee_id === employeeId
+        );
+
+        // Sort by latest date first
+        const sorted = [...filtered].sort(
+          (a, b) => new Date(b.shift_date) - new Date(a.shift_date)
+        );
+
+        setRosterData(sorted);
+      } catch (error) {
+        console.error(
+          "Error fetching roster:",
+          error.response?.data || error.message
+        );
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handlePageChange = (_, value) => {
     setPage(value);
   };
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-    setPage(1); // Reset to the first page on search
+    setPage(1);
   };
 
-  const filteredRecords = mockRoster.filter((record) =>
-    Object.values(record).some(
-      (value) =>
-        typeof value === "string" &&
-        value.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  // Search filter
+  const filteredRecords = rosterData.filter((record) =>
+    [record.shift_date, record.start_time, record.end_time]
+      .some((value) =>
+        value?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
   );
 
+  // Pagination
   const paginatedRecords = filteredRecords.slice(
     (page - 1) * recordsPerPage,
     page * recordsPerPage
   );
+
+  // Format date
+  const formatDate = (dateStr) => dayjs(dateStr).format("YYYY-MM-DD");
+
+
+  // Calculate hours
+  const calculateHours = (start, end, dateStr) => {
+    const formattedDate = dayjs(dateStr).format("YYYY-MM-DD");
+
+    let startDateTime = dayjs(`${formattedDate} ${start}`, "YYYY-MM-DD HH:mm");
+    let endDateTime = dayjs(`${formattedDate} ${end}`, "YYYY-MM-DD HH:mm");
+
+    if (!startDateTime.isValid() || !endDateTime.isValid()) {
+      startDateTime = dayjs(`${formattedDate} ${start}`, "YYYY-MM-DD hh:mm A");
+      endDateTime = dayjs(`${formattedDate} ${end}`, "YYYY-MM-DD hh:mm A");
+    }
+
+    if (endDateTime.isBefore(startDateTime)) {
+      endDateTime = endDateTime.add(1, "day");
+    }
+
+    const diff = endDateTime.diff(startDateTime, "minute") / 60;
+    return isNaN(diff) ? "-" : `${diff.toFixed(1)} hrs`;
+  };
 
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
         Roster
       </Typography>
+
+      {/* Search Box */}
       <Box sx={{ mb: 4, display: "flex", justifyContent: "flex-end" }}>
         <TextField
           label="Search Roster"
@@ -182,30 +132,44 @@ const RosterPage = () => {
           sx={{ width: "400px" }}
         />
       </Box>
+
+      {/* Table */}
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Shift Time</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Department</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Position</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Total Hours</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedRecords.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell>{record.date}</TableCell>
-                <TableCell>{record.shiftTime}</TableCell>
-                <TableCell>{record.department}</TableCell>
-                <TableCell>{record.position}</TableCell>
-                <TableCell>{record.totalHours}</TableCell>
+            {paginatedRecords.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} align="center">
+                  No records found
+                </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              paginatedRecords.map((record) => (
+                <TableRow key={record._id || record.id}>
+                  <TableCell>{formatDate(record.shift_date)}</TableCell>
+                  <TableCell>{`${record.start_time} - ${record.end_time}`}</TableCell>
+                  <TableCell>
+                    {calculateHours(
+                      record.start_time,
+                      record.end_time,
+                      record.shift_date
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Pagination */}
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
         <Pagination
           count={Math.ceil(filteredRecords.length / recordsPerPage)}

@@ -181,82 +181,6 @@ const EmployeePage = () => {
     page * employeesPerPage
   );
 
-  // if (selectedEmployee) {
-  //   return (
-  //     <Box sx={{ p: 4 }}>
-  //       <Box
-  //         sx={{
-  //           display: "flex",
-  //           justifyContent: "space-between",
-  //           alignItems: "center",
-  //           mb: 4,
-  //         }}
-  //       >
-  //         <Button
-  //           variant="outlined"
-  //           startIcon={<ArrowBackIcon />}
-  //           onClick={() => setSelectedEmployee(null)}
-  //         >
-  //           Back to list
-  //         </Button>
-  //         <Box>
-  //           <Button
-  //             variant="contained"
-  //             color="primary"
-  //             startIcon={<EditIcon />}
-  //             onClick={handleEdit}
-  //             sx={{ mr: 2 }}
-  //           >
-  //             Edit
-  //           </Button>
-  //           <Button
-  //             variant="contained"
-  //             color="error"
-  //             startIcon={<DeleteIcon />}
-  //             onClick={handleDelete}
-  //             sx={{ mr: 2 }}
-  //           >
-  //             Delete
-  //           </Button>
-  //           <Button
-  //             variant="contained"
-  //             color="secondary"
-  //             startIcon={<RosterIcon />}
-  //             sx={{ mr: 2 }}
-  //           >
-  //             Add Roster
-  //           </Button>
-  //           <Button
-  //             variant="contained"
-  //             color="success"
-  //             startIcon={<PayrollIcon />}
-  //           >
-  //             Add Payroll Info
-  //           </Button>
-  //         </Box>
-  //       </Box>
-  //       <Paper sx={{ p: 4 }}>
-  //         <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
-  //           {selectedEmployee.name}
-  //         </Typography>
-  //         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-  //           {selectedEmployee.position} - {selectedEmployee.department}
-  //         </Typography>
-  //         <Box sx={{ mt: 3 }}>
-  //           <Typography variant="body1">
-  //             <strong>Email:</strong> {selectedEmployee.email}
-  //           </Typography>
-  //           <Typography variant="body1">
-  //             <strong>Phone:</strong> {selectedEmployee.phone}
-  //           </Typography>
-  //           <Typography variant="body1">
-  //             <strong>Address:</strong> {selectedEmployee.address}
-  //           </Typography>
-  //         </Box>
-  //       </Paper>
-  //     </Box>
-  //   );
-  // }
 
   const fetchEmployees = async () => {
     try {
@@ -290,7 +214,6 @@ const EmployeePage = () => {
 
       setOpenPayrollForm(false);
       setPayrollForm({ employee_id: "", annual_salary: "" });
-      // Optionally show success toast or refresh payroll list
     } catch (error) {
       console.error(
         "Error creating payroll:",
@@ -315,7 +238,6 @@ const EmployeePage = () => {
         start_time: "",
         end_time: "",
       });
-      // Optionally show success toast or refresh roster list
     } catch (error) {
       console.error(
         "Error creating roster:",
@@ -409,7 +331,7 @@ const EmployeePage = () => {
           </Paper>
         </>
       ) : (
-        // ✅ Table View
+        // Table View
         <>
           <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
             <Typography variant="h4">Employee Directory</Typography>
@@ -447,7 +369,7 @@ const EmployeePage = () => {
             <>
               <TableContainer component={Paper}>
                 <Table>
-                  <TableHead>
+                  <TableHead >
                     <TableRow>
                       <TableCell>
                         <strong>Name</strong>
@@ -461,7 +383,7 @@ const EmployeePage = () => {
                       <TableCell>
                         <strong>Email</strong>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="center">
                         <strong>Actions</strong>
                       </TableCell>
                     </TableRow>
@@ -517,7 +439,7 @@ const EmployeePage = () => {
                             variant="outlined"
                             size="small"
                             color="success"
-                            sx={{ mt: 1 }}
+                            // sx={{ mt: 1 }}
                             onClick={() => {
                               setPayrollForm({
                                 ...payrollForm,

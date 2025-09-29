@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { url } from "../constant";
 import {
   Paper,
   Box,
@@ -18,8 +16,10 @@ import {
   Notifications as NotificationsIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
+import axios from "axios";
+import { url } from "../../constant";
 
-const TodayEvent = () => {
+const TodayEvent = ({ event }) => {
   const [events, setEvents] = useState([]);
   const [newEvent, setNewEvent] = useState("");
   const [successOpen, setSuccessOpen] = useState(false);
@@ -28,46 +28,12 @@ const TodayEvent = () => {
   // Fetch events from DB
   const fetchEvents = async () => {
     try {
-      
+      // NOTE: Assuming res.data.result is an array of event objects
       const res = await axios.get(`${url}/event`);
+      console.log(res.data)
       setEvents(res.data.result || []);
     } catch (error) {
       console.error("Error fetching events:", error);
-      setErrorOpen(true);
-    }
-  };
-
-  // Add new event
-  const handleAddEvent = async () => {
-    if (!newEvent.trim()) return;
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${url}/event`,
-        { event: newEvent },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setNewEvent("");
-      setSuccessOpen(true);
-      fetchEvents();
-    } catch (error) {
-      console.error("Error adding event:", error);
-      setErrorOpen(true);
-    }
-  };
-
-  // Delete event
-  const handleDeleteEvent = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this event?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${url}/event/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setEvents(events.filter((event) => event.id !== id));
-      setSuccessOpen(true);
-    } catch (error) {
-      console.error("Error deleting event:", error);
       setErrorOpen(true);
     }
   };
@@ -143,43 +109,15 @@ const TodayEvent = () => {
                   {event.event}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  
                   Created:{" "}
                   {new Date(event.createdAt).toLocaleDateString("en-GB")}
                 </Typography>
-              </Grid>
-
-              {/* DELETE BUTTON at the end of the event row */}
-              <Grid item>
-                <IconButton
-                sx={{ pl: 90}}
-                  color="error"
-                  onClick={() => handleDeleteEvent(event.id)}
-                  aria-label={`Delete event ${event.event}`}
-                >
-                  <DeleteIcon />
-                </IconButton>
               </Grid>
             </Grid>
           ))
         ) : (
           <Typography>No events yet</Typography>
         )}
-      </Box>
-
-      
-      <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
-        <TextField
-          label="New Event"
-          variant="outlined"
-          size="small"
-          value={newEvent}
-          onChange={(e) => setNewEvent(e.target.value)}
-          fullWidth
-        />
-        <Button variant="contained" onClick={handleAddEvent}>
-          ADD
-        </Button>
       </Box>
 
       {/* SNACKBARS */}

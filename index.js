@@ -8,11 +8,12 @@ import employeeRouter from "./src/route/employeeRouter.js";
 import attendanceRouter from "./src/route/attendanceRouter.js";
 import payrollRouter from "./src/route/payrollRouter.js";
 import rosterRouter from "./src/route/rosterRouter.js";
+import eventRouter from "./src/route/eventRouter.js";
 let app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
@@ -28,6 +29,7 @@ app.use("/employee", employeeRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/roster", rosterRouter);
 app.use("/payroll", payrollRouter);
+app.use("/event", eventRouter);
 
 app.use(errorMiddleware);
 

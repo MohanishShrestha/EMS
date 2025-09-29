@@ -27,34 +27,33 @@ export const createEmployeeController = expressAsyncHandler(
 
 export const loginEmployeeController = expressAsyncHandler(
   async (req, res, next) => {
-    let email = req.body.email;
+    let name = req.body.name;
     let password = req.body.password;
 
-    let employee = await Employee.findOne({ email: email });
+    console.log("name:", name);
+
+    let employee = await Employee.findOne({ name: name });
+    console.log(employee);
+
     if (employee) {
       let isValidPassword = await bcrypt.compare(password, employee.password);
 
       if (isValidPassword) {
-        let info = {
-          id: employee._id,
-        };
-
+        let info = { id: employee._id };
         let expireInfo = { expiresIn: "20d" };
         let token = jwt.sign(info, secretkey, expireInfo);
 
         res.status(200).json({
           success: true,
-          message: "employee login successfull",
+          message: "employee login successful",
           data: employee,
           token: token,
         });
       } else {
-        let error = new Error("Crenditial do not match");
-        throw error;
+        throw new Error("Credentials do not match");
       }
     } else {
-      let error = new Error("Crenditial not found");
-      throw error;
+      throw new Error("Credentials not found");
     }
   }
 );

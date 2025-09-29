@@ -21,19 +21,16 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
 
-const Sidebar = () => {
+const SidebarEmployee = () => {
   const navigate = useNavigate();
 
-  const menuItems = [
-    {
-      text: "Dashboard",
-      icon: <DashboardIcon color="primary" />,
-      path: "/admin/dashboard",
-    },
-    { text: "Roster", icon: <GroupIcon />, path: "/admin/roster" },
-    { text: "Attendance", icon: <EventNoteIcon />, path: "/admin/attendance" },
-    { text: "Payroll", icon: <AttachMoneyIcon />, path: "/admin/payroll" },
-  ];
+ const menuItems = [
+  { text: "Dashboard", icon: <DashboardIcon />, path: "/project/employee/dashboard" },
+  { text: "Roster", icon: <GroupIcon />, path: "/project/employee/roster" },
+  { text: "Attendance", icon: <EventNoteIcon />, path: "/project/employee/attendance" },
+  { text: "Payroll", icon: <AttachMoneyIcon />, path: "/project/employee/payroll" },
+];
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -117,4 +114,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default SidebarEmployee;

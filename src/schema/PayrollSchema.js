@@ -6,8 +6,7 @@ const payrollSchema = new Schema(
       ref: "Employee",
       required: [true, "Employee ID is required"],
     },
-    net_pay: { type: Number, required: [true, "Net pay is required"] },
-    pay_period: { type: String, required: [true, "Pay period is required"] },
+    annual_salary: { type: Number, required: [true, " Annual_salary is required"] },
   },
   {
     timestamps: true,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import dayjs from "dayjs";
 import { url } from "../constant";
 import {
   Box,
@@ -46,7 +47,7 @@ const AttendancePage = () => {
   const [editFormData, setEditFormData] = useState({
     checkIn: "",
     checkOut: "",
-    date: "",
+    date: "2025-09-29", // ✅ default
     status: "",
   });
 
@@ -92,7 +93,7 @@ const AttendancePage = () => {
     setEditFormData({
       checkIn: record.checkIn || "",
       checkOut: record.checkOut || "",
-      date: record.date?.split("T")[0] || "",
+      date: record.date ? record.date.split("T")[0] : "2025-09-29", // ✅ YYYY-MM-DD
       status: record.status || "",
     });
   };
@@ -144,10 +145,11 @@ const AttendancePage = () => {
     }
   };
 
+  // ✅ Format to YYYY-MM-DD
   const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("en-GB"); // dd/mm/yyyy
-  };
+  if (!dateStr) return "-";
+  return dayjs(dateStr).format("YYYY/MM/DD");
+};
 
   useEffect(() => {
     const fetchData = async () => {
@@ -159,6 +161,7 @@ const AttendancePage = () => {
         ]);
 
         const attendanceRaw = attendanceRes.data.result;
+        console.log("atten",attendanceRaw);
         const employeeList = employeeRes.data.result;
 
         const mergedAttendance = attendanceRaw.map((record) => {
@@ -172,7 +175,13 @@ const AttendancePage = () => {
           };
         });
 
-        setAttendanceRecords(mergedAttendance);
+        // ✅ Sort descending by date
+        const sorted = mergedAttendance.sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+
+        setAttendanceRecords(sorted);
+        console.log("sor", sorted);
         setEmployees(employeeList);
       } catch (error) {
         console.error(
@@ -188,7 +197,7 @@ const AttendancePage = () => {
     fetchData();
   }, []);
 
-  // Employee specific records (moved outside for global access)
+  // Employee specific records
   const employeeRecords = selectedEmployeeForAttendance
     ? attendanceRecords.filter(
         (record) => record.employeeName === selectedEmployeeForAttendance
@@ -321,10 +330,10 @@ const AttendancePage = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Date</TableCell>
               <TableCell>Employee</TableCell>
               <TableCell>Check-In</TableCell>
               <TableCell>Check-Out</TableCell>
-              <TableCell>Date</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -332,10 +341,10 @@ const AttendancePage = () => {
           <TableBody>
             {paginatedRecords.map((record) => (
               <TableRow key={record.id}>
+                <TableCell>{formatDate(record.date)}</TableCell>
                 <TableCell>{record.employeeName}</TableCell>
                 <TableCell>{record.checkIn}</TableCell>
                 <TableCell>{record.checkOut}</TableCell>
-                <TableCell>{formatDate(record.date)}</TableCell>
                 <TableCell>
                   <Chip
                     label={record.status}
@@ -346,6 +355,7 @@ const AttendancePage = () => {
                   <Button
                     size="small"
                     startIcon={<EditIcon />}
+                    sx={{ pr: 2 }}
                     onClick={() => handleEdit(record)}
                   >
                     Edit
@@ -354,13 +364,14 @@ const AttendancePage = () => {
                     size="small"
                     color="error"
                     startIcon={<DeleteIcon />}
+                    sx={{ pr: 2 }}
                     onClick={() => handleDeleteAttendance(record.id)}
                   >
                     Delete
                   </Button>
                   <Button
                     size="small"
-                    variant="contained"
+                    color="success"
                     startIcon={<VisibilityIcon />}
                     onClick={() => handleViewAttendance(record.employeeName)}
                   >
@@ -384,7 +395,9 @@ const AttendancePage = () => {
       {/* Edit Dialog */}
       <Dialog open={!!editingRecord} onClose={() => setEditingRecord(null)}>
         <DialogTitle>Edit Attendance</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        >
           <TextField
             label="Check-In"
             value={editFormData.checkIn}

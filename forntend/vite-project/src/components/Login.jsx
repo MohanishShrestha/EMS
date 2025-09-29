@@ -1,6 +1,5 @@
 import React, { useState, useContext } from "react";
 import {
-  Container,
   TextField,
   Button,
   Typography,
@@ -17,7 +16,6 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import Lock from "@mui/icons-material/Lock";
 import Group from "@mui/icons-material/Group";
 import Settings from "@mui/icons-material/Settings";
-import EmailIcon from "@mui/icons-material/Email";
 import axios from "axios";
 import { url } from "../constant";
 import { GlobalVariableContext } from "../App";
@@ -28,10 +26,9 @@ const Login = () => {
   const global = useContext(GlobalVariableContext);
 
   const [form, setForm] = useState({
-    username: "",
+    name: "",
     password: "",
     role: "",
-    email: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -45,10 +42,9 @@ const Login = () => {
     e.preventDefault();
     setError(null);
 
-    const { username, password, role, email } = form;
+    const { name, password, role } = form;
 
-    // Basic validation
-    if (!username || !password || !role || !email) {
+    if (!name || !password || !role) {
       setError("Please fill in all fields.");
       return;
     }
@@ -57,9 +53,8 @@ const Login = () => {
 
     try {
       const response = await axios.post(`${url}/employee/login`, {
-        username,
+        name,
         password,
-        email,
         role,
       });
 
@@ -143,33 +138,14 @@ const Login = () => {
             autoFocus
             margin="normal"
             label="Username"
-            name="username"
-            value={form.username}
+            name="name"
+            value={form.name}
             onChange={handleChange}
-            placeholder="Enter your username"
+            placeholder="Enter your name"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <AccountCircle />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            fullWidth
-            required
-            margin="normal"
-            label="Email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <EmailIcon />
                 </InputAdornment>
               ),
             }}

@@ -4,11 +4,18 @@ import ExcelJS from "exceljs";
 import Attendance from "../schema/AttendanceSchema.js";
 
 export const checkInController = expressAsyncHandler(async (req, res, next) => {
+  
   const employeeId = req.employee?.id;
+  console.log(employeeId)
   const today = new Date();
+  console.log(today)
   today.setHours(0, 0, 0, 0);
 
-  const existing = await Attendance.findOne({ employee: employeeId, date: today });
+  const existing = await Attendance.findOne({
+    employee: employeeId,
+    date: today,
+  });
+  console.log(existing)
   if (existing) {
     return res.status(400).json({ message: "Already checked in today." });
   }
@@ -37,7 +44,10 @@ export const checkOutController = expressAsyncHandler(
     today.setHours(0, 0, 0, 0);
 
     // Find today's attendance record
-    const attendance = await Attendance.findOne({ employee: employeeId, date: today });
+    const attendance = await Attendance.findOne({
+      employee: employeeId,
+      date: today,
+    });
 
     if (!attendance) {
       return res
@@ -76,7 +86,10 @@ export const applyLeaveController = expressAsyncHandler(async (req, res) => {
   leaveDate.setHours(0, 0, 0, 0); // normalize to midnight
 
   // Check if record already exists
-  const existing = await Attendance.findOne({ employee: employeeId, date: leaveDate });
+  const existing = await Attendance.findOne({
+    employee: employeeId,
+    date: leaveDate,
+  });
 
   if (existing) {
     return res.status(400).json({ message: "Already marked for this date." });
@@ -186,7 +199,10 @@ export const generateExcelReportController = expressAsyncHandler(
       }
 
       // Fetch data with filters
-      const data = await Attendance.find(query).populate("employee", "name email");
+      const data = await Attendance.find(query).populate(
+        "employee",
+        "name email"
+      );
 
       // Create workbook + sheet
       const workbook = new ExcelJS.Workbook();

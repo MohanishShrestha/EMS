@@ -3,27 +3,48 @@ import ExcelJS from "exceljs";
 import Payroll from "../schema/PayrollSchema.js";
 // Create a new payroll record
 
+// export const createPayrollController = expressAsyncHandler(async (req, res) => {
+//     const employeeId = req.employee?.id;
+//   const {  annual_salary } = req.body;
+//   if ( !annual_salary ) {
+//     return res
+//       .status(400)
+//       .json({ message: "All payroll fields are required." });
+//   }
+//   const newPayroll = new Payroll({
+//     employee: employeeId,
+//     net_pay,
+//     pay_period_start: new Date(pay_period_start),
+//     pay_period_end: new Date(pay_period_end),
+//   });
+//   const result = await newPayroll.save();
+//   res.status(201).json({
+//     success: true,
+//     message: "Payroll record created successfully",
+//     result,
+//   });
+// });
 export const createPayrollController = expressAsyncHandler(async (req, res) => {
-    const employeeId = req.employee?.id;
-  const {  net_pay, pay_period_start, pay_period_end } = req.body;
-  if ( !net_pay || !pay_period_start || !pay_period_end) {
-    return res
-      .status(400)
-      .json({ message: "All payroll fields are required." });
+  const { employee_id, annual_salary } = req.body;
+
+  if (!employee_id || !annual_salary) {
+    return res.status(400).json({ message: "All payroll fields are required." });
   }
+
   const newPayroll = new Payroll({
-    employee: employeeId,
-    net_pay,
-    pay_period_start: new Date(pay_period_start),
-    pay_period_end: new Date(pay_period_end),
+    employee_id,
+    annual_salary,
   });
+
   const result = await newPayroll.save();
+
   res.status(201).json({
     success: true,
     message: "Payroll record created successfully",
     result,
   });
 });
+
 
 // Get all payroll records for all employees
 export const getAllPayrollsController = expressAsyncHandler(

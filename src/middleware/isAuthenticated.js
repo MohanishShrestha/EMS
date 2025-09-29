@@ -9,7 +9,7 @@ const isAuthenticated = expressAsyncHandler(async (req, res, next) => {
     try {
       let token = bearerToken.split(" ")[1];
       let info = jwt.verify(token, secretkey);
-      req.user = { id: info.id };
+      req.employee = { id: info.id };
       next();
     } catch (error) {
       res.status(401);

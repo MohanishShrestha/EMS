@@ -1,14 +1,21 @@
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import SidebarEmployee from "./components/employee/SidebarEmployee";
+import HeaderEmployee from "./components/employee/HeaderEmployee";
 import Dashboard from "./components/Dashboard";
-import RosterPage from "./components/RosterPage";
 import AttendancePage from "./components/Attendance";
 import Payroll from "./components/Payroll";
 import Login from "./components/Login";
 import EmployeePage from "./components/Employess";
 import Header from "./components/Header";
 import { Box } from "@mui/material";
+import EmployeeDashboard from "./components/employee/EmployeeDashboard";
+import EmployeeAttendancePage from "./components/employee/EmployeeAttendancePage";
+import MyPayrollPage from "./components/employee/MyPayrollPage";
+import RosterPage from "./components/employee/EmpyloyeeRoster";
+import RosterPages from "./components/RosterPage";
+
 
 function RequireAuth({ children, role }) {
   const token = localStorage.getItem("token");
@@ -29,6 +36,31 @@ function RequireAuth({ children, role }) {
   return children;
 }
 
+function EmployeeLayout() {
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      <SidebarEmployee />
+
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, p: 3, backgroundColor: "#f4f7f9" }}
+      >
+        <HeaderEmployee />
+
+        <Routes>
+          <Route path="dashboard" element={<EmployeeDashboard />} />
+          <Route path="roster" element={<RosterPage/>} />
+          <Route path="attendance" element={<EmployeeAttendancePage />} />
+          <Route path="payroll" element={<MyPayrollPage />} />
+          <Route path="" element={<Navigate to="dashboard" replace />} />
+          <Route path="*" element={<div>404 - Page Not Found</div>} />
+        </Routes>
+      </Box>
+    </Box>
+  );
+}
+
+
 function AdminLayout() {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -45,7 +77,7 @@ function AdminLayout() {
         <Routes>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="employees" element={<EmployeePage />} />
-          <Route path="roster" element={<RosterPage />} />
+          <Route path="roster" element={<RosterPages />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="payroll" element={<Payroll />} />
           <Route path="" element={<Navigate to="dashboard" replace />} />
@@ -59,6 +91,7 @@ function AdminLayout() {
 function Project() {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
 
       <Route
@@ -70,9 +103,20 @@ function Project() {
         }
       />
 
+      <Route
+        path="/project/employee/*"
+        element={
+          <RequireAuth role="employee">
+            <EmployeeLayout />
+          </RequireAuth>
+        }
+      />
+
       <Route path="*" element={<div>404 - Page Not Found</div>} />
     </Routes>
   );
 }
+
+
 
 export default Project;
