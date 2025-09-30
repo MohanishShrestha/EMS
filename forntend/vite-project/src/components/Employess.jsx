@@ -56,6 +56,7 @@ const EmployeePage = () => {
     employee_id: "",
     annual_salary: "",
   });
+  const [successMessage, setSuccessMessage] = useState("");
 
   const departments = [
     "Engineering",
@@ -71,15 +72,15 @@ const EmployeePage = () => {
 
   const positions = [
     "Software Engineer",
-    "Product Manager",
-    "UX Designer",
-    "Marketing Specialist",
-    "Data Analyst",
-    "System Administrator",
+    "Product Manager  ",
+    "UX Designer      ",
+    "Market Specialist",
+    "Data Analyst     ",
+    "System Admin     ",
     "Financial Analyst",
-    "Content Writer",
-    "Operations Manager",
-    "Human Resources",
+    "Content Writer   ",
+    "Operation Manager",
+    "Human Resources  ",
   ];
 
   const [openAddForm, setOpenAddForm] = useState(false);
@@ -112,9 +113,10 @@ const EmployeePage = () => {
 
     try {
       await axios.delete(`${url}/employee/${id}`);
-      await fetchEmployees(); // Refresh list
-      setSelectedEmployee(null); // Exit detail view if needed
-      setSuccessOpen(true); // Optional: show success message
+      await fetchEmployees();
+      setSelectedEmployee(null);
+      setSuccessMessage("Employee deleted successfully!");
+      setSuccessOpen(true);
     } catch (error) {
       console.error(
         "Error deleting employee:",
@@ -153,9 +155,10 @@ const EmployeePage = () => {
         department: "",
         password: "",
       });
-      await fetchEmployees(); // Refresh list
-      setSelectedEmployee(null); // Exit detail view if editing
-      setSuccessOpen(true); // Show success message
+      await fetchEmployees();
+      setSelectedEmployee(null);
+      setSuccessMessage("Employee added successfully!");
+      setSuccessOpen(true);
     } catch (error) {
       console.error(
         "Error saving employee:",
@@ -181,7 +184,6 @@ const EmployeePage = () => {
     page * employeesPerPage
   );
 
-
   const fetchEmployees = async () => {
     try {
       const response = await axios.get(`${url}/employee`);
@@ -197,8 +199,7 @@ const EmployeePage = () => {
 
   const handleCreatePayroll = async () => {
     try {
-      const token = localStorage.getItem("token"); // or sessionStorage.getItem("token")
-      console.log(payrollForm.employee_id);
+      const token = localStorage.getItem("token");
       await axios.post(
         `${url}/payroll`,
         {
@@ -206,14 +207,14 @@ const EmployeePage = () => {
           annual_salary: payrollForm.annual_salary,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       setOpenPayrollForm(false);
       setPayrollForm({ employee_id: "", annual_salary: "" });
+      setSuccessMessage("Payroll added successfully!");
+      setSuccessOpen(true);
     } catch (error) {
       console.error(
         "Error creating payroll:",
@@ -238,6 +239,8 @@ const EmployeePage = () => {
         start_time: "",
         end_time: "",
       });
+      setSuccessMessage("Roster added successfully!");
+      setSuccessOpen(true);
     } catch (error) {
       console.error(
         "Error creating roster:",
@@ -289,7 +292,7 @@ const EmployeePage = () => {
               >
                 Delete
               </Button>
-              
+
               <Button
                 variant="outlined"
                 size="small"
@@ -369,7 +372,7 @@ const EmployeePage = () => {
             <>
               <TableContainer component={Paper}>
                 <Table>
-                  <TableHead >
+                  <TableHead>
                     <TableRow>
                       <TableCell>
                         <strong>Name</strong>
@@ -418,7 +421,7 @@ const EmployeePage = () => {
                           >
                             Delete
                           </Button>
-                          
+
                           <Button
                             variant="outlined"
                             size="small"
@@ -434,7 +437,6 @@ const EmployeePage = () => {
                             Add Roster
                           </Button>
 
-                      
                           <Button
                             variant="outlined"
                             size="small"
@@ -653,7 +655,22 @@ const EmployeePage = () => {
           severity="success"
           sx={{ width: "100%" }}
         >
-          Employee saved successfully!
+          Employee Added successfully!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={successOpen}
+        autoHideDuration={4000}
+        onClose={() => setSuccessOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSuccessOpen(false)}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          {successMessage}
         </Alert>
       </Snackbar>
     </Box>

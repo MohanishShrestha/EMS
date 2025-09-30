@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import { url } from "../constant";
@@ -17,12 +17,6 @@ import {
   TextField,
   InputAdornment,
   Chip,
-  Snackbar,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -30,6 +24,9 @@ import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
+import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const AttendancePage = () => {
   const [page, setPage] = useState(1);
@@ -42,95 +39,14 @@ const AttendancePage = () => {
 
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [employees, setEmployees] = useState([]);
-
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editFormData, setEditFormData] = useState({
-    checkIn: "",
-    checkOut: "",
-    date: "2025-09-29", // ✅ default
-    status: "",
-  });
-
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [errorOpen, setErrorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handlePageChange = (event, value) => {
-    setPage(value);
-  };
+  const attendanceRef = useRef(null); // ✅ For PDF download
 
-  const handleDeleteAttendance = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this attendance record?"
-    );
-    if (!confirmDelete) return;
+  const handlePageChange = (event, value) => setPage(value);
 
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${url}/attendance/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const updatedRecords = attendanceRecords.filter(
-        (record) => record.id !== id
-      );
-      setAttendanceRecords(updatedRecords);
-      setSelectedEmployeeForAttendance(null);
-      setSuccessOpen(true);
-    } catch (error) {
-      console.error(
-        "Error deleting attendance record:",
-        error.response?.data || error.message
-      );
-      setErrorOpen(true);
-    }
-  };
-
-  const handleEdit = (record) => {
-    setEditingRecord(record);
-    setEditFormData({
-      checkIn: record.checkIn || "",
-      checkOut: record.checkOut || "",
-      date: record.date ? record.date.split("T")[0] : "2025-09-29", // ✅ YYYY-MM-DD
-      status: record.status || "",
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.patch(`${url}/attendance/${editingRecord.id}`, editFormData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const updatedRecords = attendanceRecords.map((record) =>
-        record.id === editingRecord.id ? { ...record, ...editFormData } : record
-      );
-      setAttendanceRecords(updatedRecords);
-      setEditingRecord(null);
-      setSuccessOpen(true);
-    } catch (error) {
-      console.error(
-        "Error updating attendance:",
-        error.response?.data || error.message
-      );
-      setErrorOpen(true);
-    }
-  };
-
-  const handleViewAttendance = (employeeName) => {
-    setSelectedEmployeeForAttendance(employeeName);
-    setPage(1);
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-    setPage(1);
-  };
+  const formatDate = (dateStr) =>
+    dateStr ? dayjs(dateStr).format("YYYY/MM/DD") : "-";
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -145,12 +61,7 @@ const AttendancePage = () => {
     }
   };
 
-  // ✅ Format to YYYY-MM-DD
-  const formatDate = (dateStr) => {
-  if (!dateStr) return "-";
-  return dayjs(dateStr).format("YYYY/MM/DD");
-};
-
+  // --- Fetch attendance & employees ---
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -160,14 +71,12 @@ const AttendancePage = () => {
           axios.get(`${url}/employee`),
         ]);
 
-        const attendanceRaw = attendanceRes.data.result;
-        console.log("atten",attendanceRaw);
-        const employeeList = employeeRes.data.result;
+        const attendanceRaw = attendanceRes.data.result || [];
+        const employeeList = employeeRes.data.result || [];
 
         const mergedAttendance = attendanceRaw.map((record) => {
           const employeeId = record.user || record.employee;
           const employee = employeeList.find((emp) => emp.id === employeeId);
-
           return {
             ...record,
             employeeName: employee?.name || "Unknown",
@@ -175,20 +84,15 @@ const AttendancePage = () => {
           };
         });
 
-        // ✅ Sort descending by date
+        // Sort descending by date
         const sorted = mergedAttendance.sort(
           (a, b) => new Date(b.date) - new Date(a.date)
         );
 
         setAttendanceRecords(sorted);
-        console.log("sor", sorted);
         setEmployees(employeeList);
       } catch (error) {
-        console.error(
-          "Error fetching data:",
-          error.response?.data || error.message
-        );
-        setErrorOpen(true);
+        console.error("Error fetching data:", error.response?.data || error.message);
       } finally {
         setLoading(false);
       }
@@ -197,111 +101,60 @@ const AttendancePage = () => {
     fetchData();
   }, []);
 
-  // Employee specific records
-  const employeeRecords = selectedEmployeeForAttendance
+  // --- Filtered & paginated records ---
+  const filteredRecords = selectedEmployeeForAttendance
     ? attendanceRecords.filter(
         (record) => record.employeeName === selectedEmployeeForAttendance
       )
-    : [];
-
-  if (selectedEmployeeForAttendance) {
-    let filtered = [...employeeRecords];
-    if (startDate && endDate) {
-      filtered = filtered.filter((record) => {
-        const recordDate = new Date(record.date);
+    : attendanceRecords.filter((record) => {
+        const term = searchTerm.toLowerCase();
         return (
-          recordDate >= new Date(startDate) && recordDate <= new Date(endDate)
+          record.employeeName?.toLowerCase().includes(term) ||
+          record.date?.toString().toLowerCase().includes(term) ||
+          record.status?.toLowerCase().includes(term)
         );
       });
-    }
 
-    const paginated = filtered.slice(
-      (page - 1) * recordsPerPage,
-      page * recordsPerPage
-    );
-
-    return (
-      <Box sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Attendance for {selectedEmployeeForAttendance}
-        </Typography>
-        <Box sx={{ mb: 4, display: "flex", gap: 2, alignItems: "center" }}>
-          <Button
-            variant="outlined"
-            onClick={() => setSelectedEmployeeForAttendance(null)}
-          >
-            Back to All Records
-          </Button>
-          <TextField
-            label="Start Date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Box>
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Check-In</TableCell>
-                <TableCell>Check-Out</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginated.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell>{formatDate(record.date)}</TableCell>
-                  <TableCell>{record.checkIn}</TableCell>
-                  <TableCell>{record.checkOut}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={record.status}
-                      color={getStatusColor(record.status)}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-          <Pagination
-            count={Math.ceil(filtered.length / recordsPerPage)}
-            page={page}
-            onChange={handlePageChange}
-          />
-        </Box>
-      </Box>
-    );
-  }
-
-  // Search filter
-  const filteredRecords = attendanceRecords.filter((record) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      record.employeeName?.toLowerCase().includes(term) ||
-      record.date?.toString().toLowerCase().includes(term) ||
-      record.status?.toLowerCase().includes(term)
-    );
-  });
-
-  // Pagination
-  const paginatedRecords = filteredRecords.slice(
+  const displayedRecords = filteredRecords.slice(
     (page - 1) * recordsPerPage,
     page * recordsPerPage
   );
+
+  // --- DOWNLOAD: Excel ---
+  const handleDownloadExcel = () => {
+    if (!filteredRecords.length) return;
+
+    const data = filteredRecords.map((rec) => ({
+      Date: formatDate(rec.date),
+      Employee: rec.employeeName,
+      "Check-In": rec.checkIn,
+      "Check-Out": rec.checkOut,
+      Status: rec.status,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+    XLSX.writeFile(wb, `Attendance_${dayjs().format("YYYYMMDD")}.xlsx`);
+  };
+
+  // --- DOWNLOAD: PDF of table ---
+  const handleDownloadPDF = async () => {
+    if (!attendanceRef.current) return;
+
+    try {
+      const canvas = await html2canvas(attendanceRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pageWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pdfHeight);
+      pdf.save(`Attendance_${dayjs().format("YYYYMMDD")}.pdf`);
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert("Failed to generate PDF.");
+    }
+  };
 
   return (
     <Box sx={{ p: 4 }}>
@@ -309,12 +162,12 @@ const AttendancePage = () => {
         Employee Attendance
       </Typography>
 
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
         <TextField
           label="Search Employee Attendance"
           variant="outlined"
           value={searchTerm}
-          onChange={handleSearchChange}
+          onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -322,11 +175,21 @@ const AttendancePage = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ width: 400 }}
+          sx={{ width: 300 }}
         />
+
+        {/* --- Download Buttons --- */}
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button variant="contained" onClick={handleDownloadExcel}>
+            Download Excel
+          </Button>
+          <Button variant="outlined" onClick={handleDownloadPDF}>
+            Download PDF
+          </Button>
+        </Box>
       </Box>
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} ref={attendanceRef}>
         <Table>
           <TableHead>
             <TableRow>
@@ -335,11 +198,10 @@ const AttendancePage = () => {
               <TableCell>Check-In</TableCell>
               <TableCell>Check-Out</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedRecords.map((record) => (
+            {displayedRecords.map((record) => (
               <TableRow key={record.id}>
                 <TableCell>{formatDate(record.date)}</TableCell>
                 <TableCell>{record.employeeName}</TableCell>
@@ -350,33 +212,6 @@ const AttendancePage = () => {
                     label={record.status}
                     color={getStatusColor(record.status)}
                   />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    sx={{ pr: 2 }}
-                    onClick={() => handleEdit(record)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    sx={{ pr: 2 }}
-                    onClick={() => handleDeleteAttendance(record.id)}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    size="small"
-                    color="success"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => handleViewAttendance(record.employeeName)}
-                  >
-                    Attendance
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -391,71 +226,6 @@ const AttendancePage = () => {
           onChange={handlePageChange}
         />
       </Box>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingRecord} onClose={() => setEditingRecord(null)}>
-        <DialogTitle>Edit Attendance</DialogTitle>
-        <DialogContent
-          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-        >
-          <TextField
-            label="Check-In"
-            value={editFormData.checkIn}
-            onChange={(e) =>
-              setEditFormData({ ...editFormData, checkIn: e.target.value })
-            }
-          />
-          <TextField
-            label="Check-Out"
-            value={editFormData.checkOut}
-            onChange={(e) =>
-              setEditFormData({ ...editFormData, checkOut: e.target.value })
-            }
-          />
-          <TextField
-            label="Date"
-            type="date"
-            value={editFormData.date}
-            onChange={(e) =>
-              setEditFormData({ ...editFormData, date: e.target.value })
-            }
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="Status"
-            value={editFormData.status}
-            onChange={(e) =>
-              setEditFormData({ ...editFormData, status: e.target.value })
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditingRecord(null)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveEdit}>
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbars */}
-      <Snackbar
-        open={successOpen}
-        autoHideDuration={3000}
-        onClose={() => setSuccessOpen(false)}
-      >
-        <Alert severity="success" sx={{ width: "100%" }}>
-          Action completed successfully!
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={errorOpen}
-        autoHideDuration={3000}
-        onClose={() => setErrorOpen(false)}
-      >
-        <Alert severity="error" sx={{ width: "100%" }}>
-          Something went wrong!
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

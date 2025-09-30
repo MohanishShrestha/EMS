@@ -28,7 +28,6 @@ const TodayEvent = () => {
   // Fetch events from DB
   const fetchEvents = async () => {
     try {
-      
       const res = await axios.get(`${url}/event`);
       setEvents(res.data.result || []);
     } catch (error) {
@@ -37,7 +36,6 @@ const TodayEvent = () => {
     }
   };
 
-  // Add new event
   const handleAddEvent = async () => {
     if (!newEvent.trim()) return;
     try {
@@ -56,7 +54,6 @@ const TodayEvent = () => {
     }
   };
 
-  // Delete event
   const handleDeleteEvent = async (id) => {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
@@ -91,12 +88,10 @@ const TodayEvent = () => {
         pt: 4,
         pb: 4,
         pl: 6,
-        pr: 6,
+        pr: 33,
         mb: 3,
-        // 🚀 FIX: Set the width to fill the available space
+        ml: -3,
         width: "100%",
-        // 💡 OPTIONAL: You can set a maximum width if you don't want it to span the full page
-        // maxWidth: "800px",
         boxSizing: "border-box",
       }}
     >
@@ -143,7 +138,6 @@ const TodayEvent = () => {
                   {event.event}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  
                   Created:{" "}
                   {new Date(event.createdAt).toLocaleDateString("en-GB")}
                 </Typography>
@@ -152,7 +146,7 @@ const TodayEvent = () => {
               {/* DELETE BUTTON at the end of the event row */}
               <Grid item>
                 <IconButton
-                sx={{ pl: 90}}
+                  sx={{ pl: 90 }}
                   color="error"
                   onClick={() => handleDeleteEvent(event.id)}
                   aria-label={`Delete event ${event.event}`}
@@ -167,7 +161,6 @@ const TodayEvent = () => {
         )}
       </Box>
 
-      
       <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
         <TextField
           label="New Event"

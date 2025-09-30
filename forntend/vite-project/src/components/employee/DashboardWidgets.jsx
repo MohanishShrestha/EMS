@@ -80,9 +80,10 @@ const DashboardWidgets = ({
           sx={{
             ml: -1.5,
             pt: 3,
-            pr: 33,
-            pb: 3,
+            pr: 34,
+            pb: 6,
             pl: 6,
+            
             position: "relative",
             overflow: "hidden",
           }}
@@ -103,7 +104,7 @@ const DashboardWidgets = ({
             Shift Time
           </Typography>
           <Typography
-            variant="h6"
+            
             sx={{ fontWeight: "bold", color: "#2c3e50", my: 1 }}
           >
             {shiftTime}
@@ -118,7 +119,7 @@ const DashboardWidgets = ({
             ml: 2,
             pt: 3,
             pr: 45,
-            pb: 3,
+            pb: 6,
             pl: 6,
             position: "relative",
             overflow: "hidden",
@@ -127,8 +128,8 @@ const DashboardWidgets = ({
           <Box
             sx={{
               position: "absolute",
-              top: 16,
-              right: 16,
+              top: 24,
+              right: 24,
               backgroundColor: "#2ecc71",
               borderRadius: "12px",
               p: 1.5,
@@ -140,7 +141,7 @@ const DashboardWidgets = ({
             Total Hours
           </Typography>
           <Typography
-            variant="h6"
+            
             sx={{ fontWeight: "bold", color: "#2c3e50", my: 1 }}
           >
             {totalHours}
@@ -154,8 +155,8 @@ const DashboardWidgets = ({
           sx={{
             ml: -1.5,
             pt: 3,
-            pr: 44,
-            pb: 3,
+            pr: 40.5,
+            pb: 6,
             pl: 6,
             position: "relative",
             overflow: "hidden",
@@ -164,8 +165,8 @@ const DashboardWidgets = ({
           <Box
             sx={{
               position: "absolute",
-              top: 16,
-              right: 16,
+              top: 24,
+              right: 24,
               backgroundColor: "#2ecc71",
               borderRadius: "12px",
               p: 1.5,
@@ -177,7 +178,7 @@ const DashboardWidgets = ({
             Department
           </Typography>
           <Typography
-            variant="h6"
+            
             sx={{ fontWeight: "bold", color: "#2c3e50", my: 1 }}
           >
             {department}
@@ -191,8 +192,8 @@ const DashboardWidgets = ({
           sx={{
             ml: 2,
             pt: 3,
-            pr: 42.5,
-            pb: 3,
+            pr: 40,
+            pb: 6,
             pl: 6,
             position: "relative",
             overflow: "hidden",
@@ -201,8 +202,8 @@ const DashboardWidgets = ({
           <Box
             sx={{
               position: "absolute",
-              top: 16,
-              right: 16,
+              top: 24,
+              right: 24,
               backgroundColor: "#2ecc71",
               borderRadius: "12px",
               p: 1.5,
@@ -214,7 +215,7 @@ const DashboardWidgets = ({
             Position
           </Typography>
           <Typography
-            variant="h6"
+            
             sx={{ fontWeight: "bold", color: "#2c3e50", my: 1 }}
           >
             {position}

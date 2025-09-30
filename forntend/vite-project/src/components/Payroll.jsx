@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Box,
   Paper,
@@ -11,50 +11,82 @@ import {
   TableRow,
   TextField,
   MenuItem,
+  Button,
+  Grid,
+  Divider, // Added Divider for visual separation
+  List, // Added List/ListItem for structured data display
+  ListItem,
+  ListItemText,
+  Stack, // Added Stack for better spacing management
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import {
+  FileDownload as FileDownloadIcon,
+  CalculateOutlined as CalculateIcon, // Added an icon for the header
+} from "@mui/icons-material";
 import dayjs from "dayjs";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { url } from "../constant";
 
+// Custom styled component for Total/Net Pay rows for emphasis
+const TotalTableCell = (props) => (
+  <TableCell
+    {...props}
+    sx={{
+      fontWeight: "bold",
+      fontSize: "1rem",
+      backgroundColor: props.net ? "#e8f5e9" : "#fff3e0",
+      color: props.net ? "success.dark" : "text.primary",
+      borderTop: "2px solid #ccc",
+    }}
+  />
+);
+
 const Payroll = () => {
-  // State for all employees and the currently selected data
-  const [employees, setEmployees] = useState([]); // Stores {id, name} of all employees
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const payslipRef = useRef(null);
+
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [employeeName, setEmployeeName] = useState("");
   const [annualSalary, setAnnualSalary] = useState(0);
-
-  // State for date range and calculations
-  const [startDate, setStartDate] = useState(dayjs().subtract(7, 'day')); // Default to last 7 days
+  const [startDate, setStartDate] = useState(dayjs().subtract(7, "day"));
   const [endDate, setEndDate] = useState(dayjs());
   const [totalHours, setTotalHours] = useState(0);
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token") || "";
   const taxRate = 0.01;
 
-  // 1. Fetch ALL Employees (for the dropdown list)
   const fetchEmployees = useCallback(async () => {
     try {
-      // Assuming you have an endpoint to get a list of all employees
-      const response = await axios.get(`${url}/employee`, {
+      const res = await axios.get(`${url}/employee`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Assuming response.data is an array of employee objects {id, name, ...}
-      setEmployees(response.data.result);
-     
-      
-      // OPTIONAL: Auto-select the first employee if the list isn't empty
-      if (response.data.length > 0) {
-        setSelectedEmployeeId(response.data[0].id);
-        setEmployeeName(response.data[0].name);
+
+      let list = [];
+      if (Array.isArray(res.data)) list = res.data;
+      else if (Array.isArray(res.data.result)) list = res.data.result;
+      else if (Array.isArray(res.data.employees)) list = res.data.employees;
+      else list = [];
+
+      setEmployees(list);
+
+      if (list.length > 0) {
+        const first = list[0];
+        const id = first.id || first._id || first.employee_id || "";
+        setSelectedEmployeeId(String(id));
+        setEmployeeName(first.name || "");
       }
-    } catch (error) {
+    } catch (err) {
       console.error(
         "Error fetching employees:",
-        error.response?.data || error.message
+        err?.response?.data || err.message
       );
+      setEmployees([]);
     }
   }, [token]);
 
@@ -62,130 +94,133 @@ const Payroll = () => {
     fetchEmployees();
   }, [fetchEmployees]);
 
-  // 2. Fetch Payroll Data (Annual Salary) when Employee is selected
   useEffect(() => {
     if (!selectedEmployeeId) {
       setAnnualSalary(0);
       return;
     }
-
-    const fetchPayroll = async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        // Search payroll by employee ID
-        const response = await axios.get(`${url}/payroll`, {
+        const res = await axios.get(`${url}/payroll`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { employee_id: selectedEmployeeId },
         });
 
-        
-        
-        // Assuming the API returns a payroll object or an array where [0] is the correct one
-        // const payrollData = response.data.payrolls[0]; 
-        const matchingPayroll = response.data.payrolls.find(p => {
-             // Handle case where employee_id is an object or a string
-             const id = p.employee_id?.id || p.employee_id;
-             return id === selectedEmployeeId;
-        });
-        
-        if (matchingPayroll) {
-          // The crucial change: Extract annual_salary
-          setAnnualSalary(matchingPayroll.annual_salary || 0);
-        } else {
-          setAnnualSalary(0);
-        }
-      } catch (error) {
-        console.error("Error fetching payroll:", error);
-        setAnnualSalary(0);
+        let payrolls = [];
+        if (Array.isArray(res.data)) payrolls = res.data;
+        else if (Array.isArray(res.data.payrolls)) payrolls = res.data.payrolls;
+        else if (Array.isArray(res.data.result)) payrolls = res.data.result;
+        else payrolls = [];
+
+        const match = payrolls.find(
+          (p) =>
+            String(p.employee_id?.id || p.employee_id || p.employee) ===
+            String(selectedEmployeeId)
+        );
+
+        if (!cancelled) setAnnualSalary(Number(match?.annual_salary || 0));
+      } catch (err) {
+        console.error(
+          "Error fetching payroll:",
+          err?.response?.data || err.message
+        );
+        if (!cancelled) setAnnualSalary(0);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-    fetchPayroll();
   }, [selectedEmployeeId, token]);
 
-  // 3. Fetch Attendance and Calculate Hours
   useEffect(() => {
     if (!selectedEmployeeId || !startDate || !endDate) {
-        setTotalHours(0);
-        return;
+      setTotalHours(0);
+      return;
     }
 
     axios
-        .get(`${url}/attendance`, {
-            headers: { Authorization: `Bearer ${token}` },
-            // Keep params, but assume backend might ignore them
-            params: {
-                employee: selectedEmployeeId,
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-            },
-        })
-        .then((res) => {
-            // Assume the attendance data is an array directly on res.data, 
-            // OR nested under a key like 'attendance'. We'll check for both.
-            const allAttendanceRecords = Array.isArray(res.data.result) 
-                ? res.data 
-                : res.data.attendance || [];
+      .get(`${url}/attendance`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          employee: selectedEmployeeId,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+        },
+      })
+      .then((res) => {
+        let all = [];
+        if (Array.isArray(res.data)) all = res.data;
+        else if (Array.isArray(res.data.result)) all = res.data.result;
+        else if (Array.isArray(res.data.attendance)) all = res.data.attendance;
+        else if (Array.isArray(res.data.data)) all = res.data.data;
+        else all = [];
 
-                // console.log("ww",allAttendanceRecords)
-                const all = allAttendanceRecords.result
-            // --- MANUAL CLIENT-SIDE FILTERING & CALCULATION ---
-            const total = all
-                .filter(record => {
-                    // 1. Filter by Employee ID: Ensure the record belongs to the selected employee.
-                    // This is the core fix for the lack of API filtering.
-                    const recordEmployeeId = record.employee;
-                    if (recordEmployeeId !== selectedEmployeeId) {
-                        return false;
-                    }
+        const start = dayjs(startDate).startOf("day");
+        const end = dayjs(endDate).endOf("day");
 
-                    // 2. Filter by Date Range: Ensure the record falls within the selected range.
-                    // This is necessary if the API also ignores the 'start' and 'end' params.
-                    const recordDate = dayjs(record.date);
-                    return recordDate.isAfter(startDate.startOf('day')) && 
-                           recordDate.isBefore(endDate.endOf('day'));
+        const total = all
+          .filter((record) => {
+            if (!record) return false;
+            const recEmpId =
+              record.employee?._id || record.employee?.id || record.employee;
+            if (String(recEmpId) !== String(selectedEmployeeId)) return false;
 
-                })
-                .reduce((sum, record) => {
-                    // Removed: console.log("time:",res) - This was inefficiently logging the entire response 
-                    // 14 times inside the reducer loop.
+            if (!record.date) return false;
+            const recordDate = dayjs(record.date);
+            if (recordDate.isBefore(start) || recordDate.isAfter(end))
+              return false;
 
-                    if (!record.checkIn || !record.checkOut) return sum;
-                 
+            return true;
+          })
+          .reduce((sum, record) => {
+            if (!record.checkIn || !record.checkOut) return sum;
 
-                    // Convert string times to numbers
-                    const [inH, inM] = record.checkIn.split(":").map(Number);
-                    const [outH, outM] = record.checkOut.split(":").map(Number);
+            let checkIn = dayjs(record.checkIn);
+            let checkOut = dayjs(record.checkOut);
 
-                    // Use the date of the record to create full timestamps
-                    const checkIn = dayjs(record.date).hour(inH).minute(inM || 0).second(0);
-                    const checkOut = dayjs(record.date).hour(outH).minute(outM || 0).second(0);
+            if (!checkIn.isValid() || !checkOut.isValid()) {
+              const [inH = 0, inM = 0] = (record.checkIn || "")
+                .split(":")
+                .map(Number);
+              const [outH = 0, outM = 0] = (record.checkOut || "")
+                .split(":")
+                .map(Number);
+              checkIn = dayjs(record.date)
+                .hour(inH)
+                .minute(inM || 0)
+                .second(0);
+              checkOut = dayjs(record.date)
+                .hour(outH)
+                .minute(outM || 0)
+                .second(0);
+            }
 
-                    // Calculate difference in hours
-                    const diffInHours = checkOut.diff(checkIn, 'hour', true);
+            const diffHours = checkOut.diff(checkIn, "hour", true);
+            return diffHours > 0 ? sum + diffHours : sum;
+          }, 0);
 
-                    // Skip records where checkout is before checkin (e.g., overnight shifts can complicate simple diff)
-                    if (diffInHours < 0) return sum; 
-                    
-                    return sum + diffInHours;
-                }, 0);
+        setTotalHours(parseFloat(total.toFixed(2)));
+      })
+      .catch((err) => {
+        console.error(
+          "Error fetching attendance:",
+          err?.response?.data || err.message
+        );
+        setTotalHours(0);
+      });
+  }, [selectedEmployeeId, startDate, endDate, token]);
 
-            setTotalHours(parseFloat(total.toFixed(2)));
-        })
-        .catch(error => {
-            console.error("Error fetching attendance:", error);
-            setTotalHours(0);
-        });
-}, [selectedEmployeeId, startDate, endDate, token]);
-
-  // Handler for employee selection change
   const handleEmployeeChange = (event) => {
     const newId = event.target.value;
-    const employee = employees.find((e) => e.id === newId);
-    
-    setSelectedEmployeeId(newId);
-    setEmployeeName(employee ? employee.name : '');
+    setSelectedEmployeeId(String(newId));
+    const emp = employees.find(
+      (e) => String(e.id || e._id || e.employee_id) === String(newId)
+    );
+    setEmployeeName(emp?.name || "");
   };
 
-  // Payroll calculations
+  // payroll math
   const hourlyRate = annualSalary
     ? parseFloat((annualSalary / 2080).toFixed(2))
     : 0;
@@ -193,97 +228,300 @@ const Payroll = () => {
   const tax = parseFloat((grossPay * taxRate).toFixed(2));
   const netPay = parseFloat((grossPay - tax).toFixed(2));
 
+  // --- Download handlers  ---
+  const handleDownloadSummary = () => {
+    if (!employeeName) return;
+    const payslipData = [
+      {
+        Employee: employeeName,
+        "Annual Salary": annualSalary,
+        "Hourly Rate": hourlyRate,
+        "Total Hours": totalHours,
+        "Gross Pay": grossPay,
+        Tax: tax,
+        "Net Pay": netPay,
+        "Start Date": startDate.format("YYYY-MM-DD"),
+        "End Date": endDate.format("YYYY-MM-DD"),
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(payslipData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Payslip");
+    XLSX.writeFile(
+      wb,
+      `${employeeName || "employee"}_Payslip_${startDate.format(
+        "YYYYMMDD"
+      )}_to_${endDate.format("YYYYMMDD")}.xlsx`
+    );
+  };
+
+  const handleDownloadView = async () => {
+    if (!payslipRef.current) return;
+    try {
+      const canvas = await html2canvas(payslipRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const imgProps = { width: canvas.width, height: canvas.height };
+      const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pdfHeight);
+      pdf.save(
+        `${employeeName || "employee"}_Payslip_${startDate.format(
+          "YYYYMMDD"
+        )}_to_${endDate.format("YYYYMMDD")}.pdf`
+      );
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert("Failed to generate PDF — check console.");
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Employee Payroll
-        </Typography>
-
-        <Paper sx={{ p: 4, mb: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
-            Payslip
+      <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+          
+          <Typography variant="h4" component="h1" fontWeight={600}>
+            Payroll Calculator
           </Typography>
+        </Stack>
 
-          <Box
+        <Paper
+          sx={{ p: { xs: 2, md: 4 }, mb: 4, borderRadius: 2 }}
+          variant="outlined"
+          ref={payslipRef}
+        >
+          <Typography
+            variant="h5"
             sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 2,
-              mb: 4,
+              mb: 3,
+              fontWeight: 500,
+              borderBottom: "1px solid #eee",
+              pb: 1,
             }}
           >
-            {/* Employee Name Selection */}
-            <TextField
-              select
-              label="Select Employee"
-              value={selectedEmployeeId || ""}
-              onChange={handleEmployeeChange}
-              sx={{ minWidth: 200 }}
-            >
-              {employees.map((e) => (
-                <MenuItem key={e.id} value={e.id}>
-                  {e.name} {/* Display employee name */}
-                </MenuItem>
-              ))}
-            </TextField>
-            
-            <Typography>
-              <strong>Employee Name:</strong> {employeeName}
-            </Typography>
+            Employee Payslip
+          </Typography>
 
-            <DatePicker
-              label="Start Date"
-              value={startDate}
-              onChange={setStartDate}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-            <DatePicker
-              label="End Date"
-              value={endDate}
-              onChange={setEndDate}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                label="Select Employee"
+                value={selectedEmployeeId || ""}
+                onChange={handleEmployeeChange}
+                fullWidth
+                variant="outlined"
+                helperText={`Current Employee: ${
+                  employeeName || "None Selected"
+                }`}
+              >
+                {employees.map((e) => {
+                  const id = e.id || e._id || e.employee_id || "";
+                  const name =
+                    e.name ||
+                    e.fullName ||
+                    `${e.firstName || ""} ${e.lastName || ""}`.trim();
+                  return (
+                    <MenuItem key={id} value={String(id)}>
+                      {name}
+                    </MenuItem>
+                  );
+                })}
+              </TextField>
+            </Grid>
 
-            <Typography>
-              <strong>Annual Salary:</strong> ${annualSalary.toLocaleString()}
-            </Typography>
-            <Typography>
-              <strong>Hourly Rate:</strong> ${hourlyRate}
-            </Typography>
-            <Typography>
-              <strong>Total Hours:</strong> {totalHours}
-            </Typography>
-            <Typography>
-              <strong>Gross Pay:</strong> ${grossPay}
-            </Typography>
-            <Typography>
-              <strong>Net Pay:</strong> ${netPay}
-            </Typography>
-          </Box>
+            <Grid item xs={12} sm={6} md={4}>
+              <DatePicker
+                label="Start Date"
+                value={startDate}
+                onChange={(v) => setStartDate(v || dayjs())}
+                slotProps={{
+                  textField: { fullWidth: true, variant: "outlined" },
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <DatePicker
+                label="End Date"
+                value={endDate}
+                onChange={(v) => setEndDate(v || dayjs())}
+                slotProps={{
+                  textField: { fullWidth: true, variant: "outlined" },
+                }}
+              />
+            </Grid>
+          </Grid>
 
-          <TableContainer>
-            <Table>
+          <Divider sx={{ my: 4 }} />
+
+          <Typography variant="h6" gutterBottom>
+            Summary Calculations
+          </Typography>
+          <Grid container spacing={4} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={6}>
+              <List
+                dense
+                sx={{
+                  border: "1px solid #eee",
+                  borderRadius: 1,
+                  backgroundColor: "#f9f9f9",
+                }}
+              >
+                <ListItem>
+                  <ListItemText primary="Annual Salary: " />
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    ${Number(annualSalary).toLocaleString() || 0}
+                  </Typography>
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Hourly Rate: " />
+                  <Typography variant="subtitle1">${hourlyRate}</Typography>
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Total Hours Worked: " />
+                  <Typography
+                    variant="subtitle1"
+                    color="primary.main"
+                    fontWeight={600}
+                  >
+                    {totalHours}
+                  </Typography>
+                </ListItem>
+              </List>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={6}>
+              <List
+                dense
+                sx={{
+                  border: "1px solid #eee",
+                  borderRadius: 1,
+                  backgroundColor: "#f9f9f9",
+                }}
+              >
+                <ListItem>
+                  <ListItemText primary="Gross Pay: " />
+                  <Typography
+                    variant="h6"
+                    color="primary.dark"
+                    fontWeight={700}
+                  >
+                    ${grossPay}
+                  </Typography>
+                </ListItem>
+
+                <ListItem>
+                  <ListItemText primary="Net Pay: " />
+                  <Typography
+                    variant="h6"
+                    color="success.dark"
+                    fontWeight={700}
+                  >
+                    ${netPay}
+                  </Typography>
+                </ListItem>
+              </List>
+            </Grid>
+          </Grid>
+
+          <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 500 }}>
+            Detailed Breakdown
+          </Typography>
+          <TableContainer
+            component={Paper}
+            elevation={1}
+            sx={{ border: "1px solid #ddd" }}
+          >
+            <Table size="small">
               <TableHead>
-                <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                  <TableCell sx={{ fontWeight: "bold" }}>Description</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Hours</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Rate</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Amount</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Tax </TableCell>
+                <TableRow sx={{ backgroundColor: "primary.light" }}>
+                  <TableCell sx={{ fontWeight: "bold", color: "white" }}>
+                    Description
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: "bold", color: "white" }}
+                  >
+                    Hours
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: "bold", color: "white" }}
+                  >
+                    Rate
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: "bold", color: "white" }}
+                  >
+                    Gross Amount
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: "bold", color: "white" }}
+                  >
+                    Tax
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 <TableRow>
-                  <TableCell>{employeeName}</TableCell>
-                  <TableCell>{totalHours}</TableCell>
-                  <TableCell>${hourlyRate}</TableCell>
-                  <TableCell>${grossPay}</TableCell>
-                  <TableCell>${tax}</TableCell>
+                  <TableCell>{employeeName || "Regular Pay"}</TableCell>
+                  <TableCell align="right">{totalHours}</TableCell>
+                  <TableCell align="right">${hourlyRate}</TableCell>
+                  <TableCell align="right">${grossPay}</TableCell>
+                  <TableCell align="right">${tax}</TableCell>
+                </TableRow>
+
+                <TableRow>
+                  <TotalTableCell colSpan={3}>
+                    <Typography fontWeight={300}>TOTAL GROSS PAY</Typography>
+                  </TotalTableCell>
+                  <TotalTableCell align="right">${grossPay}</TotalTableCell>
+                  <TotalTableCell align="right">${tax}</TotalTableCell>
+                </TableRow>
+                <TableRow>
+                  <TotalTableCell colSpan={4} net>
+                    <Typography fontWeight={300}>TOTAL NET PAY</Typography>
+                  </TotalTableCell>
+                  <TotalTableCell align="right" net>
+                    <Typography variant="h6" fontWeight={300}>
+                      ${netPay}
+                    </Typography>
+                  </TotalTableCell>
                 </TableRow>
               </TableBody>
             </Table>
           </TableContainer>
+
+          <Box
+            sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 4 }}
+          >
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<FileDownloadIcon />}
+              onClick={handleDownloadSummary}
+              disabled={!selectedEmployeeId}
+            >
+              Download Summary (Excel)
+            </Button>
+
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<FileDownloadIcon />}
+              onClick={handleDownloadView}
+              disabled={!selectedEmployeeId}
+            >
+              Download Payslip (PDF)
+            </Button>
+          </Box>
         </Paper>
       </Box>
     </LocalizationProvider>
