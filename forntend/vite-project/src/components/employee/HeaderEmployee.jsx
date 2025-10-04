@@ -25,7 +25,6 @@ const Header = () => {
   const displayName = user?.name || "Employee";
   const displayRole = user?.role || " ";
 
-  // Generate initials from name (e.g., "Bipan User" → "BU")
   const initials = displayName
     .split(" ")
     .map((word) => word[0])
@@ -49,9 +48,6 @@ const Header = () => {
               sx={{ fontWeight: "bold" }}
             >
               {displayName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {displayRole}
             </Typography>
           </Box>
         </Box>

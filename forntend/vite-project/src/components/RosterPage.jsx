@@ -91,7 +91,6 @@ const RosterPages = () => {
         position: employee.position || "N/A",
         shiftTime: `${roster.start_time} - ${roster.end_time}`,
         totalHours: totalHours.toFixed(2),
-        // date: new Date(roster.shift_date).toISOString().split("T")[0],
         date: dayjs(roster.shift_date).format("YYYY/MM/DD"),
       };
     })
@@ -124,7 +123,6 @@ const RosterPages = () => {
     if (!window.confirm("Are you sure you want to delete this roster?")) return;
     try {
       await axios.delete(`${url}/roster/${rosterId}`);
-      // Remove locally
       setRosterData((prev) => prev.filter((r) => r.id !== rosterId));
     } catch (error) {
       console.error("Delete failed:", error.response?.data || error.message);

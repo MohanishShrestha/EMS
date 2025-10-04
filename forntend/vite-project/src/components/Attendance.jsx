@@ -41,7 +41,7 @@ const AttendancePage = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const attendanceRef = useRef(null); // ✅ For PDF download
+  const attendanceRef = useRef(null); 
 
   const handlePageChange = (event, value) => setPage(value);
 
@@ -61,7 +61,6 @@ const AttendancePage = () => {
     }
   };
 
-  // --- Fetch attendance & employees ---
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -84,7 +83,6 @@ const AttendancePage = () => {
           };
         });
 
-        // Sort descending by date
         const sorted = mergedAttendance.sort(
           (a, b) => new Date(b.date) - new Date(a.date)
         );
@@ -101,7 +99,6 @@ const AttendancePage = () => {
     fetchData();
   }, []);
 
-  // --- Filtered & paginated records ---
   const filteredRecords = selectedEmployeeForAttendance
     ? attendanceRecords.filter(
         (record) => record.employeeName === selectedEmployeeForAttendance
@@ -120,7 +117,6 @@ const AttendancePage = () => {
     page * recordsPerPage
   );
 
-  // --- DOWNLOAD: Excel ---
   const handleDownloadExcel = () => {
     if (!filteredRecords.length) return;
 
@@ -138,7 +134,6 @@ const AttendancePage = () => {
     XLSX.writeFile(wb, `Attendance_${dayjs().format("YYYYMMDD")}.xlsx`);
   };
 
-  // --- DOWNLOAD: PDF of table ---
   const handleDownloadPDF = async () => {
     if (!attendanceRef.current) return;
 

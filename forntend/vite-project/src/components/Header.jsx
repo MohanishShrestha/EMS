@@ -25,7 +25,6 @@ const Header = () => {
   const displayName = user?.name || "Admin User";
   const displayRole = user?.role || "System Administrator";
 
-  // Generate initials from name (e.g., "Bipan User" → "BU")
   const initials = displayName
     .split(" ")
     .map((word) => word[0])
@@ -50,9 +49,7 @@ const Header = () => {
             >
               {displayName}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {displayRole}
-            </Typography>
+            
           </Box>
         </Box>
       </Toolbar>

@@ -13,18 +13,18 @@ import {
   MenuItem,
   Button,
   Grid,
-  Divider, // Added Divider for visual separation
-  List, // Added List/ListItem for structured data display
+  Divider,
+  List,
   ListItem,
   ListItemText,
-  Stack, // Added Stack for better spacing management
+  Stack,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import {
   FileDownload as FileDownloadIcon,
-  CalculateOutlined as CalculateIcon, // Added an icon for the header
+  CalculateOutlined as CalculateIcon,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -33,7 +33,6 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { url } from "../constant";
 
-// Custom styled component for Total/Net Pay rows for emphasis
 const TotalTableCell = (props) => (
   <TableCell
     {...props}
@@ -73,14 +72,16 @@ const Payroll = () => {
       else if (Array.isArray(res.data.employees)) list = res.data.employees;
       else list = [];
 
-      setEmployees(list);
+      // Exclude admins
+      const filtered = list.filter(
+        (emp) => String(emp.role || "").toLowerCase() !== "admin"
+      );
 
-      if (list.length > 0) {
-        const first = list[0];
-        const id = first.id || first._id || first.employee_id || "";
-        setSelectedEmployeeId(String(id));
-        setEmployeeName(first.name || "");
-      }
+      setEmployees(filtered);
+
+      // Do NOT auto-select any employee
+      setSelectedEmployeeId("");
+      setEmployeeName("");
     } catch (err) {
       console.error(
         "Error fetching employees:",
@@ -284,9 +285,8 @@ const Payroll = () => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-          
           <Typography variant="h4" component="h1" fontWeight={600}>
-            Payroll Calculator
+            Payroll
           </Typography>
         </Stack>
 

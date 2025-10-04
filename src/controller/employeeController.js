@@ -5,25 +5,96 @@ import { secretkey } from "../constant.js";
 import jwt from "jsonwebtoken";
 import Employee from "../schema/EmployeeSchema.js";
 
-export const createEmployeeController = expressAsyncHandler(
-  async (req, res, next) => {
-    let data = req.body;
-    const hash = await bcrypt.hash(data.password, 10);
-    data.password = hash;
-    data = {
-      ...data,
-      password: hash,
-    };
+// export const createEmployeeController = expressAsyncHandler(
+//   async (req, res, next) => {
+//     let data = req.body;
+//     const hash = await bcrypt.hash(data.password, 10);
+//     data.password = hash;
+//     data = {
+//       ...data,
+//       password: hash,
+//     };
 
-    let result = await Employee.create(data);
+//     let result = await Employee.create(data);
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Employee registered",
+//       result: result,
+//     });
+//   }
+// );
+
+
+export const createEmployeeController = expressAsyncHandler(async (req, res) => {
+  try {
+    const { name, email, password, department, position } = req.body;
+
+    // ✅ Basic validation
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and password are required",
+      });
+    }
+
+    // ✅ Password strength validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, and one number (min length 6)",
+      });
+    }
+
+    // ✅ Check if email already exists
+    const existingEmployee = await Employee.findOne({ email });
+    if (existingEmployee) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already registered",
+      });
+    }
+
+    // ✅ Case-insensitive check for name
+    const existingName = await Employee.findOne({
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
+
+    if (existingName) {
+      return res.status(400).json({
+        success: false,
+        message: "Name is already taken",
+      });
+    }
+
+    // ✅ Hash password
+    const hash = await bcrypt.hash(password, 10);
+
+    // ✅ Create employee
+    const result = await Employee.create({
+      name,
+      email,
+      password: hash,
+      department,
+      position,
+    });
 
     res.status(201).json({
       success: true,
-      message: "Employee registered",
-      result: result,
+      message: "Employee registered successfully",
+      result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
     });
   }
-);
+});
+
 
 export const loginEmployeeController = expressAsyncHandler(
   async (req, res, next) => {

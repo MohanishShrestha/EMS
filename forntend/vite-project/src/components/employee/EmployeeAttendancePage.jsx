@@ -60,7 +60,6 @@ const EmployeeAttendancePage = () => {
       console.log("sorted: ", sorted);
 
       setAttendanceRecords(sorted);
-      // Check the most recent record to determine current status
       const mostRecentRecord = sorted[0];
       const isCurrentlyCheckedIn =
         mostRecentRecord &&
@@ -79,7 +78,6 @@ const EmployeeAttendancePage = () => {
     fetchAttendance();
   }, []);
 
-  // --- MODIFIED HANDLER: Added alert for success/failure ---
   const handleCheckIn = async () => {
     if (isCheckedIn) {
       alert("You are already checked in!");
@@ -103,14 +101,12 @@ const EmployeeAttendancePage = () => {
       }
     } catch (error) {
       console.error("Check-in failed:", error.response?.data || error.message);
-      // FAILURE ALERT
       alert(
         `Check-in failed: ${error.response?.data?.message || "Server Error"}`
       );
     }
   };
 
-  // --- MODIFIED HANDLER: Added alert for success/failure ---
   const handleCheckOut = async () => {
     if (!isCheckedIn) {
       alert("You need to check in before checking out!");
@@ -128,25 +124,21 @@ const EmployeeAttendancePage = () => {
       const updatedRecord = res.data.record || res.data.result;
       if (updatedRecord) {
         const updatedRecords = attendanceRecords.map((record) =>
-          // The API should return the ID of the record that was updated. Assuming it's `id`.
           record._id === updatedRecord._id || record.id === updatedRecord.id
             ? updatedRecord
             : record
         );
         setAttendanceRecords(updatedRecords);
         setIsCheckedIn(false);
-        // SUCCESS ALERT
         alert(`Check-out successful!!!`);
       }
     } catch (error) {
       console.error("Check-out failed:", error.response?.data || error.message);
-      // FAILURE ALERT
       alert(
         `Check-out failed: ${error.response?.data?.message || "Server Error"}`
       );
     }
   };
-  // ----------------------------------------------------------------------------------
 
   const handleSearchChange = (event) => {
     setSearchDate(event.target.value);
@@ -236,7 +228,6 @@ const EmployeeAttendancePage = () => {
           <TableBody>
             {paginatedRecords.map((record) => {
               const formattedDate = dayjs(record.date).format("DD/MM/YYYY");
-              // Check if checkIn/checkOut are full timestamps or just time strings
               const formattedCheckIn = record.checkIn
                 ? dayjs(record.checkIn).format(
                     record.checkIn.includes(":") ? "HH:mm:ss" : "HH:mm:ss"

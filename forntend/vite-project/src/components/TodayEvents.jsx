@@ -143,7 +143,6 @@ const TodayEvent = () => {
                 </Typography>
               </Grid>
 
-              {/* DELETE BUTTON at the end of the event row */}
               <Grid item>
                 <IconButton
                   sx={{ pl: 90 }}

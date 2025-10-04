@@ -25,12 +25,10 @@ const TodayEvent = ({ event }) => {
   const [successOpen, setSuccessOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
 
-  // Fetch events from DB
   const fetchEvents = async () => {
     try {
-      // NOTE: Assuming res.data.result is an array of event objects
       const res = await axios.get(`${url}/event`);
-      console.log(res.data)
+      console.log(res.data);
       setEvents(res.data.result || []);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -42,7 +40,6 @@ const TodayEvent = ({ event }) => {
     fetchEvents();
   }, []);
 
-  // Snackbar handlers
   const handleClose = (event, reason) => {
     if (reason === "clickaway") {
       return;
@@ -59,10 +56,7 @@ const TodayEvent = ({ event }) => {
         pl: 6,
         pr: 6,
         mb: 3,
-        // 🚀 FIX: Set the width to fill the available space
         width: "100%",
-        // 💡 OPTIONAL: You can set a maximum width if you don't want it to span the full page
-        // maxWidth: "800px",
         boxSizing: "border-box",
       }}
     >

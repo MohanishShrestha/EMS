@@ -50,6 +50,8 @@ const EmployeePage = () => {
     start_time: "",
     end_time: "",
   });
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [openPayrollForm, setOpenPayrollForm] = useState(false);
   const [payrollForm, setPayrollForm] = useState({
@@ -128,7 +130,6 @@ const EmployeePage = () => {
   const handleAddEmployee = async () => {
     try {
       if (newEmployee.id) {
-        // ✅ Update existing employee
         await axios.patch(`${url}/employee/${newEmployee.id}`, {
           name: newEmployee.name,
           email: newEmployee.email,
@@ -137,7 +138,6 @@ const EmployeePage = () => {
           password: newEmployee.password,
         });
       } else {
-        // ✅ Create new employee
         await axios.post(`${url}/employee`, {
           name: newEmployee.name,
           email: newEmployee.email,
@@ -164,12 +164,16 @@ const EmployeePage = () => {
         "Error saving employee:",
         error.response?.data || error.message
       );
+      setErrorMessage(
+        error.response?.data?.message || "Failed to save employee"
+      );
+      setErrorOpen(true);
     }
   };
 
   const filteredEmployees = Array.isArray(employees)
     ? employees
-        .filter((employee) => employee.role !== "admin") // ✅ Exclude admins
+        .filter((employee) => employee.role !== "admin")
         .filter((employee) =>
           Object.values(employee).some(
             (value) =>
@@ -256,7 +260,6 @@ const EmployeePage = () => {
   return (
     <Box sx={{ p: 4 }}>
       {selectedEmployee ? (
-        // ✅ Detail View
         <>
           <Box
             sx={{
@@ -337,7 +340,7 @@ const EmployeePage = () => {
         // Table View
         <>
           <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="h4">Employee Directory</Typography>
+            <Typography variant="h4">Employees</Typography>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -399,7 +402,7 @@ const EmployeePage = () => {
                         <TableCell>{employee.department}</TableCell>
                         <TableCell>{employee.email}</TableCell>
                         <TableCell align="right">
-                          <Button
+                          {/* <Button
                             variant="outlined"
                             size="small"
                             startIcon={<EditIcon />}
@@ -410,7 +413,7 @@ const EmployeePage = () => {
                             }}
                           >
                             Edit
-                          </Button>
+                          </Button> */}
                           <Button
                             variant="outlined"
                             color="error"
@@ -643,36 +646,58 @@ const EmployeePage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ✅ Success Snackbar */}
-      <Snackbar
-        open={successOpen}
-        autoHideDuration={4000}
-        onClose={() => setSuccessOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSuccessOpen(false)}
-          severity="success"
-          sx={{ width: "100%" }}
-        >
-          Employee Added successfully!
-        </Alert>
-      </Snackbar>
+     {/* Success Snackbar */}
+<Snackbar
+  open={successOpen}
+  autoHideDuration={4000}
+  onClose={() => setSuccessOpen(false)}
+  anchorOrigin={{ vertical: "top", horizontal: "center" }}
+  sx={{
+    "& .MuiPaper-root": {
+      minWidth: "420px", // wider alert
+    },
+  }}
+>
+  <Alert
+    onClose={() => setSuccessOpen(false)}
+    severity="success"
+    sx={{
+      width: "100%",
+      fontSize: "1.2rem",    
+      fontWeight: "bold",    
+      padding: "16px 24px",  
+    }}
+  >
+    {successMessage}
+  </Alert>
+</Snackbar>
 
-      <Snackbar
-        open={successOpen}
-        autoHideDuration={4000}
-        onClose={() => setSuccessOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSuccessOpen(false)}
-          severity="success"
-          sx={{ width: "100%" }}
-        >
-          {successMessage}
-        </Alert>
-      </Snackbar>
+{/* Error Snackbar */}
+<Snackbar
+  open={errorOpen}
+  autoHideDuration={4000}
+  onClose={() => setErrorOpen(false)}
+  anchorOrigin={{ vertical: "top", horizontal: "center" }}
+  sx={{
+    "& .MuiPaper-root": {
+      minWidth: "420px", 
+    },
+  }}
+>
+  <Alert
+    onClose={() => setErrorOpen(false)}
+    severity="error"
+    sx={{
+      width: "100%",
+      fontSize: "1.2rem",
+      fontWeight: "bold",
+      padding: "16px 24px",
+    }}
+  >
+    {errorMessage}
+  </Alert>
+</Snackbar>
+
     </Box>
   );
 };

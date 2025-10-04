@@ -15,7 +15,7 @@ import EmployeeAttendancePage from "./components/employee/EmployeeAttendancePage
 import MyPayrollPage from "./components/employee/MyPayrollPage";
 import RosterPage from "./components/employee/EmpyloyeeRoster";
 import RosterPages from "./components/RosterPage";
-
+import PageNotFound from "./components/PageNotFound";
 
 function RequireAuth({ children, role }) {
   const token = localStorage.getItem("token");
@@ -49,17 +49,16 @@ function EmployeeLayout() {
 
         <Routes>
           <Route path="dashboard" element={<EmployeeDashboard />} />
-          <Route path="roster" element={<RosterPage/>} />
+          <Route path="roster" element={<RosterPage />} />
           <Route path="attendance" element={<EmployeeAttendancePage />} />
           <Route path="payroll" element={<MyPayrollPage />} />
           <Route path="" element={<Navigate to="dashboard" replace />} />
-          <Route path="*" element={<div>404 - Page Not Found</div>} />
+          <Route path="*" element={<PageNotFound />} />
         </Routes>
       </Box>
     </Box>
   );
 }
-
 
 function AdminLayout() {
   return (
@@ -81,7 +80,7 @@ function AdminLayout() {
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="payroll" element={<Payroll />} />
           <Route path="" element={<Navigate to="dashboard" replace />} />
-          <Route path="*" element={<div>404 - Page Not Found</div>} />
+          <Route path="*" element={<PageNotFound />} />
         </Routes>
       </Box>
     </Box>
@@ -116,7 +115,5 @@ function Project() {
     </Routes>
   );
 }
-
-
 
 export default Project;

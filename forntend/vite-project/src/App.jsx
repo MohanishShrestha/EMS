@@ -6,6 +6,7 @@ import Login from "./components/Login";
 // import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import Project from "./project";
+import DashboardWidgets from "./components/employee/DashboardWidgets";
 // import DashboardWidgets from "./components/DashboardWidgets";
 
 export let GlobalVariableContext = createContext();
@@ -21,7 +22,7 @@ function App() {
       >
         <Project />
         {/* <EmployeeDashboard/> */}
-        
+        {/* <DashboardWidgets /> */}
       </GlobalVariableContext.Provider>
     </>
   );

@@ -26,22 +26,21 @@ import { url } from "../../constant";
 dayjs.extend(isBetween);
 
 const MyPayrollPage = () => {
-  // --- refs ---
   const payslipRef = useRef(null);
 
-  // --- get auth info safely ---
   let employeeId = null;
   let token = null;
+  let name = null
   try {
     const storeduser = localStorage.getItem("user");
     const user = storeduser ? JSON.parse(storeduser) : null;
+    name = user?.name
     employeeId = user?._id || user?.id || null;
     token = localStorage.getItem("token");
   } catch (e) {
     console.error("Error reading user from localStorage:", e);
   }
 
-  // --- state (declare BEFORE callbacks/effects) ---
   const [employeeDetails, setEmployeeDetails] = useState({
     name: "Loading...",
     position: "",
@@ -53,15 +52,17 @@ const MyPayrollPage = () => {
   const [totalHours, setTotalHours] = useState(0);
 
   const taxRate = 0.01;
-  const standardWorkHoursPerYear = 2080; // 40 * 52
+  const standardWorkHoursPerYear = 2080; 
 
-  // --- fetch employee + payroll --- 
   const fetchEmployeeData = useCallback(async () => {
     if (!employeeId || !token) return;
     try {
-      const employeeResponse = await axios.get(`${url}/employee/${employeeId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const employeeResponse = await axios.get(
+        `${url}/employee/${employeeId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const payrollResponse = await axios.get(`${url}/payroll/${employeeId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -84,7 +85,6 @@ const MyPayrollPage = () => {
     }
   }, [employeeId, token]);
 
-  // --- fetch attendance and compute hours within selected range ---
   const fetchAttendanceAndCalculateHours = useCallback(async () => {
     if (!employeeId || !token || !startDate || !endDate) {
       setTotalHours(0);
@@ -100,7 +100,6 @@ const MyPayrollPage = () => {
         ? res.data.records
         : res.data?.attendance || res.data?.data || [];
 
-      // ensure start/end are day start/end for inclusive filtering
       const start = dayjs(startDate).startOf("day");
       const end = dayjs(endDate).endOf("day");
 
@@ -108,19 +107,26 @@ const MyPayrollPage = () => {
         if (!record.date || !record.checkIn || !record.checkOut) return sum;
 
         const recordDate = dayjs(record.date);
-        // skip if outside user selected range
         if (!recordDate.isBetween(start, end, null, "[]")) return sum;
 
-        // Try parsing checkIn/checkOut directly (ISO)
         let checkIn = dayjs(record.checkIn);
         let checkOut = dayjs(record.checkOut);
 
-        // fallback if checkIn/checkOut are 'HH:mm' strings
         if (!checkIn.isValid() || !checkOut.isValid()) {
-          const [inH = 0, inM = 0] = (record.checkIn || "").split(":").map(Number);
-          const [outH = 0, outM = 0] = (record.checkOut || "").split(":").map(Number);
-          checkIn = dayjs(record.date).hour(inH).minute(inM || 0).second(0);
-          checkOut = dayjs(record.date).hour(outH).minute(outM || 0).second(0);
+          const [inH = 0, inM = 0] = (record.checkIn || "")
+            .split(":")
+            .map(Number);
+          const [outH = 0, outM = 0] = (record.checkOut || "")
+            .split(":")
+            .map(Number);
+          checkIn = dayjs(record.date)
+            .hour(inH)
+            .minute(inM || 0)
+            .second(0);
+          checkOut = dayjs(record.date)
+            .hour(outH)
+            .minute(outM || 0)
+            .second(0);
         }
 
         const diffHours = checkOut.diff(checkIn, "hour", true);
@@ -134,7 +140,6 @@ const MyPayrollPage = () => {
     }
   }, [employeeId, token, startDate, endDate]);
 
-  // --- effects ---
   useEffect(() => {
     fetchEmployeeData();
   }, [fetchEmployeeData]);
@@ -143,7 +148,6 @@ const MyPayrollPage = () => {
     fetchAttendanceAndCalculateHours();
   }, [fetchAttendanceAndCalculateHours]);
 
-  // --- payroll math ---
   const hourlyRate = annualSalary
     ? parseFloat((annualSalary / standardWorkHoursPerYear).toFixed(2))
     : 0;
@@ -151,12 +155,11 @@ const MyPayrollPage = () => {
   const tax = parseFloat((grossPay * taxRate).toFixed(2));
   const netPay = parseFloat((grossPay - tax).toFixed(2));
 
-  // --- download exact visible payslip as PDF ---
+
   const handleDownload = async () => {
     if (!payslipRef.current) return;
 
     try {
-      // higher scale = better quality
       const canvas = await html2canvas(payslipRef.current, {
         scale: 2,
         useCORS: true,
@@ -168,17 +171,15 @@ const MyPayrollPage = () => {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // convert canvas px -> mm for jspdf
-      const pxPerMm = canvas.width / (pageWidth * (96 / 25.4)); // approximate conversion
-      // simpler approach: scale to page width
+      const pxPerMm = canvas.width / (pageWidth * (96 / 25.4));
       const imgProps = { width: canvas.width, height: canvas.height };
       const pdfWidth = pageWidth;
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      const fileName = `Payslip_${employeeDetails.name || "employee"}_${dayjs().format(
-        "YYYYMMDD"
-      )}.pdf`;
+      const fileName = `Payslip_${
+        employeeDetails.name || "employee"
+      }_${dayjs().format("YYYYMMDD")}.pdf`;
       pdf.save(fileName);
     } catch (err) {
       console.error("Error generating PDF:", err);
@@ -190,13 +191,11 @@ const MyPayrollPage = () => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ p: 4 }} ref={payslipRef}>
         <Typography variant="h4" gutterBottom>
-          My Payslip
+          Payslip of {name}
         </Typography>
 
-        {/* wrap the visible section we want to export */}
-        <Box >
+        <Box>
           <Paper sx={{ p: 4, mb: 4 }}>
-            {/* Date Filter */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={6} md={3}>
                 <DatePicker
@@ -221,7 +220,6 @@ const MyPayrollPage = () => {
               </Grid>
             </Grid>
 
-            {/* Payslip Header Info */}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="h6">Annual Salary</Typography>
@@ -259,22 +257,45 @@ const MyPayrollPage = () => {
                   <TableCell>${grossPay}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={3} sx={{ fontWeight: "bold", textAlign: "right", bgcolor: "#f9f9f9" }}>
+                  <TableCell
+                    colSpan={3}
+                    sx={{
+                      fontWeight: "bold",
+                      textAlign: "right",
+                      bgcolor: "#f9f9f9",
+                    }}
+                  >
                     Gross Pay:
                   </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", bgcolor: "#f9f9f9" }}>${grossPay}</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", bgcolor: "#f9f9f9" }}>
+                    ${grossPay}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={3} sx={{ fontWeight: "bold", textAlign: "right" }}>
+                  <TableCell
+                    colSpan={3}
+                    sx={{ fontWeight: "bold", textAlign: "right" }}
+                  >
                     Tax :
                   </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", color: "error.main" }}>-${tax}</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", color: "error.main" }}>
+                    ${tax}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={3} sx={{ fontWeight: "bold", textAlign: "right", bgcolor: "#e8f5e9" }}>
+                  <TableCell
+                    colSpan={3}
+                    sx={{
+                      fontWeight: "bold",
+                      textAlign: "right",
+                      bgcolor: "#e8f5e9",
+                    }}
+                  >
                     Net Pay:
                   </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", bgcolor: "#e8f5e9" }}>${netPay}</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", bgcolor: "#e8f5e9" }}>
+                    ${netPay}
+                  </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
