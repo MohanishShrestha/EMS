@@ -72,14 +72,12 @@ const Payroll = () => {
       else if (Array.isArray(res.data.employees)) list = res.data.employees;
       else list = [];
 
-      // Exclude admins
       const filtered = list.filter(
         (emp) => String(emp.role || "").toLowerCase() !== "admin"
       );
 
       setEmployees(filtered);
 
-      // Do NOT auto-select any employee
       setSelectedEmployeeId("");
       setEmployeeName("");
     } catch (err) {

@@ -41,7 +41,7 @@ const AttendancePage = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const attendanceRef = useRef(null); 
+  const attendanceRef = useRef(null);
 
   const handlePageChange = (event, value) => setPage(value);
 
@@ -60,6 +60,8 @@ const AttendancePage = () => {
         return "default";
     }
   };
+
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,7 +92,10 @@ const AttendancePage = () => {
         setAttendanceRecords(sorted);
         setEmployees(employeeList);
       } catch (error) {
-        console.error("Error fetching data:", error.response?.data || error.message);
+        console.error(
+          "Error fetching data:",
+          error.response?.data || error.message
+        );
       } finally {
         setLoading(false);
       }
@@ -151,13 +156,35 @@ const AttendancePage = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this record?")) return;
+
+    try {
+      await axios.delete(`${url}/attendance/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAttendanceRecords((prev) => prev.filter((rec) => rec.id !== id));
+    } catch (error) {
+      console.error("Delete failed:", error.response?.data || error.message);
+      alert("Failed to delete record.");
+    }
+  };
+
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
         Employee Attendance
       </Typography>
 
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+      <Box
+        sx={{
+          mb: 2,
+          display: "flex",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <TextField
           label="Search Employee Attendance"
           variant="outlined"
@@ -193,6 +220,7 @@ const AttendancePage = () => {
               <TableCell>Check-In</TableCell>
               <TableCell>Check-Out</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -207,6 +235,16 @@ const AttendancePage = () => {
                     label={record.status}
                     color={getStatusColor(record.status)}
                   />
+                </TableCell>
+                <TableCell>
+                  <Button
+                    color="error"
+                    size="small"
+                    onClick={() => handleDelete(record.id)}
+                    startIcon={<DeleteIcon />}
+                  >
+                    Delete
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

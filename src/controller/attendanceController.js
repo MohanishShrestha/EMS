@@ -3,6 +3,47 @@ import expressAsyncHandler from "express-async-handler";
 import ExcelJS from "exceljs";
 import Attendance from "../schema/AttendanceSchema.js";
 
+export const manualAttendanceController = expressAsyncHandler(async (req, res) => {
+    const { employee_id, date, checkIn, checkOut } = req.body;
+    console.log(employee_id)
+    console.log(date)
+
+    if (!employee_id || !date ) {
+        return res.status(400).json({ message: "Employee ID, Date (YYYY-MM-DD),  are required for manual entry." });
+    }
+
+    const attendanceDate = new Date(date);
+    attendanceDate.setHours(0, 0, 0, 0); 
+
+    const existing = await Attendance.findOne({
+        employee: employee_id,
+        date: attendanceDate,
+    });
+
+    if (existing) {
+        return res.status(400).json({
+            message: "An attendance record already exists for this employee on this date. Use the update route instead.",
+            record: existing
+        });
+    }
+
+    // Create the new attendance record
+    const attendance = new Attendance({
+        employee: employee_id,
+        date: attendanceDate,
+        checkIn: checkIn || null,
+        checkOut: checkOut || null,
+    });
+
+    const result = await attendance.save();
+
+    res.status(201).json({
+        success: true,
+        message: "Manual attendance record created successfully.",
+        result,
+    });
+});
+
 export const checkInController = expressAsyncHandler(async (req, res, next) => {
   
   const employeeId = req.employee?.id;
@@ -130,53 +171,6 @@ export const getEmployeeAttendanceController = expressAsyncHandler(
   }
 );
 
-// export const generateExcelReportController = expressAsyncHandler(
-//   async (req, res) => {
-//     const data = await Attendance.find().populate("employee", "name email"); // get all attendance with employee details
-
-//     // Create a new Excel workbook and worksheet
-//     const workbook = new ExcelJS.Workbook();
-//     const worksheet = workbook.addWorksheet("Attendance Report");
-
-//     // Define worksheet headers
-//     worksheet.columns = [
-//       { header: "S.No", key: "sno", width: 6 },
-//       { header: "Name", key: "name", width: 25 },
-//       { header: "Email", key: "email", width: 30 },
-//       { header: "Date", key: "date", width: 15 },
-//       { header: "Check In", key: "checkIn", width: 15 },
-//       { header: "Check Out", key: "checkOut", width: 15 },
-//       { header: "Status", key: "status", width: 12 },
-//     ];
-
-//     // Fill data rows
-//     data.forEach((entry, index) => {
-//       worksheet.addRow({
-//         sno: index + 1,
-//         name: entry.employee?.name || "N/A",
-//         email: entry.employee?.email || "N/A",
-//         date: new Date(entry.date).toLocaleDateString(),
-//         checkIn: entry.checkIn || "-",
-//         checkOut: entry.checkOut || "-",
-//         status: entry.status || "Present",
-//       });
-//     });
-
-//     // Set response headers
-//     res.setHeader(
-//       "Content-Type",
-//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-//     );
-//     res.setHeader(
-//       "Content-Disposition",
-//       "attachment; filename=attendance-report.xlsx"
-//     );
-
-//     // Write file to response
-//     await workbook.xlsx.write(res);
-//     res.end();
-//   }
-// );
 
 export const generateExcelReportController = expressAsyncHandler(
   async (req, res) => {

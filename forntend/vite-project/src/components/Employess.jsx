@@ -50,6 +50,14 @@ const EmployeePage = () => {
     start_time: "",
     end_time: "",
   });
+  const [openAttendanceForm, setOpenAttendanceForm] = useState(false);
+  const [attendanceForm, setAttendanceForm] = useState({
+    employee_id: "",
+    date: "",
+    checkIn: "",
+    checkOut: "",
+  });
+
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -253,6 +261,42 @@ const EmployeePage = () => {
     }
   };
 
+  const handleCreateAttendance = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      console.log(attendanceForm.employee_id);
+      await axios.post(
+        `${url}/attendance`,
+        {
+          employee_id: attendanceForm.employee_id,
+          date: attendanceForm.date,
+          checkIn: attendanceForm.checkIn,
+          checkOut: attendanceForm.checkOut,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setOpenAttendanceForm(false);
+      setAttendanceForm({
+        employee_id: "",
+        date: "",
+        checkIn: "",
+        checkOut: "",
+      });
+      setSuccessMessage("Attendance added successfully!");
+      setSuccessOpen(true);
+    } catch (error) {
+      console.error(
+        "Error creating attendance:",
+        error.response?.data || error.message
+      );
+      setErrorMessage(
+        error.response?.data?.message || "Failed to add attendance"
+      );
+      setErrorOpen(true);
+    }
+  };
+
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -419,7 +463,7 @@ const EmployeePage = () => {
                             color="error"
                             size="small"
                             sx={{ mr: 1 }}
-                            startIcon={<DeleteIcon />}
+                            // startIcon={<DeleteIcon />}
                             onClick={() => handleDelete(employee.id)}
                           >
                             Delete
@@ -444,7 +488,7 @@ const EmployeePage = () => {
                             variant="outlined"
                             size="small"
                             color="success"
-                            // sx={{ mt: 1 }}
+                            sx={{ mr: 1 }}
                             onClick={() => {
                               setPayrollForm({
                                 ...payrollForm,
@@ -454,6 +498,20 @@ const EmployeePage = () => {
                             }}
                           >
                             Add Payroll
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="primary"
+                            onClick={() => {
+                              setAttendanceForm({
+                                ...attendanceForm,
+                                employee_id: employee.id,
+                              });
+                              setOpenAttendanceForm(true);
+                            }}
+                          >
+                            Add Attendance
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -646,58 +704,126 @@ const EmployeePage = () => {
         </DialogActions>
       </Dialog>
 
-     {/* Success Snackbar */}
-<Snackbar
-  open={successOpen}
-  autoHideDuration={4000}
-  onClose={() => setSuccessOpen(false)}
-  anchorOrigin={{ vertical: "top", horizontal: "center" }}
-  sx={{
-    "& .MuiPaper-root": {
-      minWidth: "420px", // wider alert
-    },
-  }}
->
-  <Alert
-    onClose={() => setSuccessOpen(false)}
-    severity="success"
-    sx={{
-      width: "100%",
-      fontSize: "1.2rem",    
-      fontWeight: "bold",    
-      padding: "16px 24px",  
-    }}
-  >
-    {successMessage}
-  </Alert>
-</Snackbar>
+      <Dialog
+        open={openAttendanceForm}
+        onClose={() => setOpenAttendanceForm(false)}
+        fullWidth
+      >
+        <DialogTitle>Add Attendance</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Employee</InputLabel>
+            <Select
+              value={attendanceForm.employee_id}
+              onChange={(e) =>
+                setAttendanceForm({
+                  ...attendanceForm,
+                  employee_id: e.target.value,
+                })
+              }
+              label="Employee"
+            >
+              {employees.map((emp) => (
+                <MenuItem key={emp.id} value={emp.id}>
+                  {emp.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-{/* Error Snackbar */}
-<Snackbar
-  open={errorOpen}
-  autoHideDuration={4000}
-  onClose={() => setErrorOpen(false)}
-  anchorOrigin={{ vertical: "top", horizontal: "center" }}
-  sx={{
-    "& .MuiPaper-root": {
-      minWidth: "420px", 
-    },
-  }}
->
-  <Alert
-    onClose={() => setErrorOpen(false)}
-    severity="error"
-    sx={{
-      width: "100%",
-      fontSize: "1.2rem",
-      fontWeight: "bold",
-      padding: "16px 24px",
-    }}
-  >
-    {errorMessage}
-  </Alert>
-</Snackbar>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Date"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={attendanceForm.date}
+            onChange={(e) =>
+              setAttendanceForm({ ...attendanceForm, date: e.target.value })
+            }
+          />
 
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Check-In Time"
+            placeholder="e.g. 09:00 AM"
+            value={attendanceForm.checkIn}
+            onChange={(e) =>
+              setAttendanceForm({ ...attendanceForm, checkIn: e.target.value })
+            }
+          />
+
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Check-Out Time"
+            placeholder="e.g. 05:00 PM"
+            value={attendanceForm.checkOut}
+            onChange={(e) =>
+              setAttendanceForm({ ...attendanceForm, checkOut: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAttendanceForm(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateAttendance}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={successOpen}
+        autoHideDuration={4000}
+        onClose={() => setSuccessOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "& .MuiPaper-root": {
+            minWidth: "420px", // wider alert
+          },
+        }}
+      >
+        <Alert
+          onClose={() => setSuccessOpen(false)}
+          severity="success"
+          sx={{
+            width: "100%",
+            fontSize: "1.2rem",
+            fontWeight: "bold",
+            padding: "16px 24px",
+          }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={errorOpen}
+        autoHideDuration={4000}
+        onClose={() => setErrorOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "& .MuiPaper-root": {
+            minWidth: "420px",
+          },
+        }}
+      >
+        <Alert
+          onClose={() => setErrorOpen(false)}
+          severity="error"
+          sx={{
+            width: "100%",
+            fontSize: "1.2rem",
+            fontWeight: "bold",
+            padding: "16px 24px",
+          }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
