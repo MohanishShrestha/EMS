@@ -747,7 +747,7 @@ const EmployeePage = () => {
             fullWidth
             margin="normal"
             label="Check-In Time"
-            placeholder="e.g. 09:00 AM"
+            placeholder="e.g. 09:00:00 AM"
             value={attendanceForm.checkIn}
             onChange={(e) =>
               setAttendanceForm({ ...attendanceForm, checkIn: e.target.value })
@@ -758,7 +758,7 @@ const EmployeePage = () => {
             fullWidth
             margin="normal"
             label="Check-Out Time"
-            placeholder="e.g. 05:00 PM"
+            placeholder="e.g. 05:00:00 PM"
             value={attendanceForm.checkOut}
             onChange={(e) =>
               setAttendanceForm({ ...attendanceForm, checkOut: e.target.value })

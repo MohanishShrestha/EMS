@@ -178,24 +178,51 @@ const Payroll = () => {
             let checkIn = dayjs(record.checkIn);
             let checkOut = dayjs(record.checkOut);
 
+            // if (!checkIn.isValid() || !checkOut.isValid()) {
+            //   const [inH = 0, inM = 0] = (record.checkIn || "")
+            //     .split(":")
+            //     .map(Number);
+            //   const [outH = 0, outM = 0] = (record.checkOut || "")
+            //     .split(":")
+            //     .map(Number);
+            //   checkIn = dayjs(record.date)
+            //     .hour(inH)
+            //     .minute(inM || 0)
+            //     .second(0);
+            //   checkOut = dayjs(record.date)
+            //     .hour(outH)
+            //     .minute(outM || 0)
+            //     .second(0);
+            // }
+
             if (!checkIn.isValid() || !checkOut.isValid()) {
-              const [inH = 0, inM = 0] = (record.checkIn || "")
-                .split(":")
-                .map(Number);
-              const [outH = 0, outM = 0] = (record.checkOut || "")
-                .split(":")
-                .map(Number);
-              checkIn = dayjs(record.date)
-                .hour(inH)
-                .minute(inM || 0)
-                .second(0);
-              checkOut = dayjs(record.date)
-                .hour(outH)
-                .minute(outM || 0)
-                .second(0);
+              // Combine the date with time strings that include AM/PM
+              const datePart = dayjs(record.date).format("YYYY-MM-DD");
+
+              const inStr = (record.checkIn || "").toUpperCase();
+              const outStr = (record.checkOut || "").toUpperCase();
+
+              checkIn = dayjs(`${datePart} ${inStr}`, [
+                "YYYY-MM-DD hh:mm:ss A",
+                "YYYY-MM-DD hh:mm A",
+                "YYYY-MM-DD HH:mm:ss",
+                "YYYY-MM-DD HH:mm",
+              ]);
+
+              checkOut = dayjs(`${datePart} ${outStr}`, [
+                "YYYY-MM-DD hh:mm:ss A",
+                "YYYY-MM-DD hh:mm A",
+                "YYYY-MM-DD HH:mm:ss",
+                "YYYY-MM-DD HH:mm",
+              ]);
             }
 
+            // console.log("checkIn",checkIn)
+            // console.log("checkOut",checkOut)
+
             const diffHours = checkOut.diff(checkIn, "hour", true);
+
+            console.log(diffHours);
             return diffHours > 0 ? sum + diffHours : sum;
           }, 0);
 

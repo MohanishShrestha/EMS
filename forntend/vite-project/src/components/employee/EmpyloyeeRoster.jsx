@@ -15,6 +15,8 @@ import {
 import axios from "axios";
 import { url } from "../../constant";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 const RosterPage = () => {
   const [page, setPage] = useState(1);
@@ -79,14 +81,12 @@ const RosterPage = () => {
   const formatDate = (dateStr) => dayjs(dateStr).format("YYYY-MM-DD");
 
   const calculateHours = (start, end, dateStr) => {
-    const formattedDate = dayjs(dateStr).format("YYYY-MM-DD");
+    const formattedDate = dayjs(dateStr).utc().local().format("YYYY-MM-DD");
 
-    // Parse start time
     let startDateTime = dayjs(`${formattedDate} ${start}`, [
       "YYYY-MM-DD HH:mm",
       "YYYY-MM-DD hh:mm A",
     ]);
-    // Parse end time
     let endDateTime = dayjs(`${formattedDate} ${end}`, [
       "YYYY-MM-DD HH:mm",
       "YYYY-MM-DD hh:mm A",
@@ -94,12 +94,13 @@ const RosterPage = () => {
 
     if (!startDateTime.isValid() || !endDateTime.isValid()) return "0 hrs";
 
-    // Overnight shift
     if (endDateTime.isBefore(startDateTime)) {
       endDateTime = endDateTime.add(1, "day");
     }
 
     const diff = endDateTime.diff(startDateTime, "minute") / 60;
+    console.log(diff);
+    console.log("ss");
     return `${diff.toFixed(1)} hrs`;
   };
 

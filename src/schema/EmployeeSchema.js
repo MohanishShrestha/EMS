@@ -14,7 +14,7 @@ const employeeSchema = Schema(
     department: { type: String },
   },
   {
-    timeStamps: true,
+    timestamps: true,
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id;
