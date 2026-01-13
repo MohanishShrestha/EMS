@@ -1,32 +1,30 @@
-import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
-import dayjs from "dayjs";
-import { url } from "../constant";
+import {
+  Delete as DeleteIcon,
+  Search as SearchIcon
+} from "@mui/icons-material";
 import {
   Box,
+  Button,
+  Chip,
+  InputAdornment,
+  Pagination,
   Paper,
-  Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Pagination,
-  Button,
   TextField,
-  InputAdornment,
-  Chip,
+  Typography,
 } from "@mui/material";
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  Visibility as VisibilityIcon,
-} from "@mui/icons-material";
-import * as XLSX from "xlsx";
+import axios from "axios";
+import dayjs from "dayjs";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useEffect, useRef, useState } from "react";
+import * as XLSX from "xlsx";
+import { url } from "../constant";
 
 const AttendancePage = () => {
   const [page, setPage] = useState(1);

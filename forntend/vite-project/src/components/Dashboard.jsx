@@ -1,7 +1,5 @@
 import { Box, CssBaseline, Grid } from "@mui/material";
 import DashboardWidgets from "./DashboardWidgets";
-import Header from "./Header";
-import Sidebar from "./Sidebar";
 import TodayEvent from "./TodayEvents";
 
 const mockData = {
